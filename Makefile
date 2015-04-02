@@ -1,5 +1,5 @@
 ALL:
-	g++ ashell.cpp -o ashell.out
+	g++ ashell.cpp -o ashell.out && ./ashell.out
 	
 clean:
 	rm -rf ashell.out
