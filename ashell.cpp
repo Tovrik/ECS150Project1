@@ -2,27 +2,53 @@
 #include <stdlib.h>
 #include <iostream>
 #include <unistd.h>
-#include <queue>
+#include <sys/stat.h>
+#include <deque>
 using namespace std;
 
-// store file path in stack of strings leading with a '/'
-
-
+//start directory
+char startDirectory[100];
 //char array for current working directory absolute path
 char currentDirectory[100];
 //queue of char arrays that will correspond to history of commands
-queue<char*> history;
-
+deque<char*> history;
+//vector of char arrays
+stack<string> delimitedCurrDirectory;
 
 //gets current directory absolute path name
 void getCurrentDirectory(){
 	getcwd(currentDirectory, 100);
 }
 
-void getCommand(){
+void delimit(char *filepath, int size){
+	for(int i = 0; i < size; i++) {
+		if(filepath[i] == '/')
+			push
+	}
 
 }
 
+void getCommand(){
+
+	ssize_t read(int fildes, void *buf, size_t nbyte);
+
+}
+
+void printPermissions(){
+    struct stat fileStat;
+
+	
+	printf( (S_ISDIR(fileStat.st_mode)) ? "d" : "-");
+    printf( (fileStat.st_mode & S_IRUSR) ? "r" : "-");
+    printf( (fileStat.st_mode & S_IWUSR) ? "w" : "-");
+    printf( (fileStat.st_mode & S_IXUSR) ? "x" : "-");
+    printf( (fileStat.st_mode & S_IRGRP) ? "r" : "-");
+    printf( (fileStat.st_mode & S_IWGRP) ? "w" : "-");
+    printf( (fileStat.st_mode & S_IXGRP) ? "x" : "-");
+    printf( (fileStat.st_mode & S_IROTH) ? "r" : "-");
+    printf( (fileStat.st_mode & S_IWOTH) ? "w" : "-");
+    printf( (fileStat.st_mode & S_IXOTH) ? "x" : "-");
+}
 
 
 // Location currLoc();
@@ -34,9 +60,17 @@ void getCommand(){
 
 
 int main (int argc, char** argv) {
+	getCurrentDirectory();
+	for(int i = 0; i < 100; i++ )
+		cout << currentDirectory[i];
 
+	cout << endl;
     return 0;
 }
+
+
+
+// get current working directory: char *getcwd(char *buf, size_t size);
 
 
 
