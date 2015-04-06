@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <deque>
+#include <stack>
 using namespace std;
 
 bool exitStatus = 1;
@@ -17,24 +18,52 @@ char currentDirectory[100];
 //queue of char arrays that will correspond to history of commands
 deque<string> listedHistory;
 //vector of char arrays
-// stack<string> delimitedCurrDirectory;
+stack<string> delimitedCurrDirectory;
 
 
 //gets current directory absolute path name
 void getCurrentDirectory(){
+	memset(currentDirectory, '/0', 100);
 	getcwd(currentDirectory, 100);
 }
 
-// void delimit(char *filepath, int size){
-// 	for(int i = 0; i < size; i++) {
-// 		if(filepath[i] == '/')
-// 			push
-// 	}
+void delimit(){
+	string temp;
+	for(int i = 0; i < 100 && currentDirectory[i] != '/0'; i++) {
+		if(currentDirectory[i] == '/' && i != 0) {
+			delimitedCurrDirectory.push(temp);
+			temp = "";
+		}
+		else if( currentDirectory[i] == ' ')
+			temp = temp + "\\ ";
+		else {
+			temp = temp + currentDirectory[i];
+		}
+	}
+}
 
-// }
+void writePrompt(){
+	getCurrentDirectory();
+	delimit();
+	string temp = delimitedCurrDirectory.top();
+	char prompt[50];
+	prompt[0] = '/'; prompt[1] = '.'; prompt[2] = '.'; prompt[3] = '.'; prompt[4] = '/';
+	for(int i = 0; i < temp.length(); i++) {
+		prompt[5+i] = temp[i];
+	}
+	prompt[temp.length() + 5] = '>';
 
-void cd();
-void ls();
+	write(1, prompt, 50);
+}
+
+
+void cd() {
+
+}
+
+void ls() {
+
+}
 
 
 void pwd() {
@@ -44,17 +73,18 @@ void pwd() {
 
 
 void history() {  
-  std::deque<string>::iterator it = listedHistory.begin();
-  	while (it != listedHistory.end()) {
- 	cout << *it << endl;
-  		// write(1, *it, 100);
-  	}
+  // std::deque<string>::iterator it = listedHistory.begin();
+  // 	while (it != listedHistory.end()) {
+ 	// cout << *it << endl;
+  // 		// write(1, *it, 100);
+  // 	}
 
 }
 
 
 void getCommand(){
-	write(1, "/.../ECS150>",12);
+
+	writePrompt();	
 	read(0, command, 100);
 	string temp(command);
 	//exits the program
