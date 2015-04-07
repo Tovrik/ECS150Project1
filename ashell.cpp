@@ -23,16 +23,20 @@ stack<string> delimitedCurrDirectory;
 
 //gets current directory absolute path name
 void getCurrentDirectory(){
-	memset(currentDirectory, '/0', 100);
+	memset(currentDirectory, '\0', 100);
 	getcwd(currentDirectory, 100);
 }
 
 void delimit(){
 	string temp;
-	for(int i = 0; i < 100 && currentDirectory[i] != '/0'; i++) {
-		if(currentDirectory[i] == '/' && i != 0) {
+	for(int i = 0; i < 100; i++) {
+		if(currentDirectory[i] == '/' && i != 0 ) {
 			delimitedCurrDirectory.push(temp);
 			temp = "";
+		}
+		else if(currentDirectory[i] == '\0') {
+			delimitedCurrDirectory.push(temp);
+			break;
 		}
 		else if( currentDirectory[i] == ' ')
 			temp = temp + "\\ ";
@@ -42,18 +46,18 @@ void delimit(){
 	}
 }
 
-void writePrompt(){
+void writePrompt() {
 	getCurrentDirectory();
 	delimit();
 	string temp = delimitedCurrDirectory.top();
-	char prompt[50];
+	int size = temp.length() + 6;
+	char prompt[size + 6];
 	prompt[0] = '/'; prompt[1] = '.'; prompt[2] = '.'; prompt[3] = '.'; prompt[4] = '/';
 	for(int i = 0; i < temp.length(); i++) {
 		prompt[5+i] = temp[i];
 	}
 	prompt[temp.length() + 5] = '>';
-
-	write(1, prompt, 50);
+	write(1, prompt, size);
 }
 
 
@@ -67,24 +71,36 @@ void ls() {
 
 
 void pwd() {
+	getCurrentDirectory();
 	write(1, currentDirectory, 100);
 	write(1, "\n", 2);
 }
 
+void addToHistory(string currCommand) {
+	listedHistory.push_front(currCommand);
+	if(listedHistory.size() > 10)
+		listedHistory.pop_back();
 
-void history() {  
-  // std::deque<string>::iterator it = listedHistory.begin();
-  // 	while (it != listedHistory.end()) {
- 	// cout << *it << endl;
-  // 		// write(1, *it, 100);
-  // 	}
+}
+
+void history() {
+  deque<string>::iterator it = listedHistory.begin();
+  	while (it != listedHistory.end()) {
+  		string tmpString = *it;
+  		int size = tmpString.length();
+  		char tmpChar[size + 1];
+  		strcpy(tmpChar, tmpString.c_str());
+  		tmpChar[size] = '\0';
+  		write(1, tmpChar, size + 1);
+  		*it++;
+  	}
 
 }
 
 
 void getCommand(){
 
-	writePrompt();	
+	writePrompt();
 	read(0, command, 100);
 	string temp(command);
 	//exits the program
@@ -93,13 +109,13 @@ void getCommand(){
 	else if(temp == "ls\n") ls();
 	else if(temp == "cd\n") cd();
 	else if(temp == "history\n") history();
-	listedHistory.push_front(temp);
+	addToHistory(command);
 }
 
 // void printPermissions(){
 //     struct stat fileStat;
 
-	
+
 // 	printf( (S_ISDIR(fileStat.st_mode)) ? "d" : "-");
 //     printf( (fileStat.st_mode & S_IRUSR) ? "r" : "-");
 //     printf( (fileStat.st_mode & S_IWUSR) ? "w" : "-");
@@ -169,7 +185,7 @@ int main (int argc, char** argv) {
 
 // pwd: print out currentDirectory path
 
-// history: each command (valid or invalid) will be pushed to front of a deque. 
+// history: each command (valid or invalid) will be pushed to front of a deque.
 // commands past 9 will be popped off the back. global var stored to keep track
 // of where you are in the history. If at -1, write blank line. If at -2 stay
 // at blank line and output alert sound ('\a')
