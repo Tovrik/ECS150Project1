@@ -4,13 +4,19 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include "noncanmode.c"
 #include <deque>
 #include <stack>
+#include <termios.h>
+
 using namespace std;
 
 bool exitStatus = 1;
-//start directory
+int myindex = 0;
 char command[100];
+
+//char buffer
+char currChar[1];
 //start directory
 char startDirectory[100];
 //char array for current working directory absolute path
@@ -23,100 +29,114 @@ stack<string> delimitedCurrDirectory;
 
 //gets current directory absolute path name
 void getCurrentDirectory(){
-	memset(currentDirectory, '\0', 100);
-	getcwd(currentDirectory, 100);
+    memset(currentDirectory, '\0', 100);
+    getcwd(currentDirectory, 100);
 }
 
 void delimit(){
-	string temp;
-	for(int i = 0; i < 100; i++) {
-		if(currentDirectory[i] == '/' && i != 0 ) {
-			delimitedCurrDirectory.push(temp);
-			temp = "";
-		}
-		else if(currentDirectory[i] == '\0') {
-			delimitedCurrDirectory.push(temp);
-			break;
-		}
-		else if( currentDirectory[i] == ' ')
-			temp = temp + "\\ ";
-		else {
-			temp = temp + currentDirectory[i];
-		}
-	}
+    string temp;
+    for(int i = 0; i < 100; i++) {
+        if(currentDirectory[i] == '/' && i != 0 ) {
+            delimitedCurrDirectory.push(temp);
+            temp = "";
+        }
+        else if(currentDirectory[i] == '\0') {
+            delimitedCurrDirectory.push(temp);
+            break;
+        }
+        else if(currentDirectory[i] == ' ')
+            temp = temp + "\\ ";
+        else {
+            temp = temp + currentDirectory[i];
+        }
+    }
 }
 
 void writePrompt() {
-	getCurrentDirectory();
-	delimit();
-	string temp = delimitedCurrDirectory.top();
-	int size = temp.length() + 6;
-	char prompt[size + 6];
-	prompt[0] = '/'; prompt[1] = '.'; prompt[2] = '.'; prompt[3] = '.'; prompt[4] = '/';
-	for(int i = 0; i < temp.length(); i++) {
-		prompt[5+i] = temp[i];
-	}
-	prompt[temp.length() + 5] = '>';
-	write(1, prompt, size);
+    //add /home/stpeters... stack <= 2
+
+    getCurrentDirectory();
+    delimit();
+    string temp = delimitedCurrDirectory.top();
+    int size = temp.length() + 6;
+    char prompt[size + 6];
+
+    temp = "/.../" + temp + ">";
+    strcpy(prompt, temp.c_str());
+    write(1, prompt, size);
 }
 
 
-void cd() {
+// void cd() {
 
-}
+// }
 
-void ls() {
+// void ls() {
 
-}
+// }
 
 
-void pwd() {
-	getCurrentDirectory();
-	write(1, currentDirectory, 100);
-	write(1, "\n", 2);
-}
+// void pwd() {
+//  getCurrentDirectory();
+//  write(1, currentDirectory, 100);
+//  write(1, "\n", 2);
+// }
 
-void addToHistory(string currCommand) {
-	listedHistory.push_front(currCommand);
-	if(listedHistory.size() > 10)
-		listedHistory.pop_back();
+// void addToHistory(string currCommand) {
+//  listedHistory.push_front(currCommand);
+//  if(listedHistory.size() > 10)
+//      listedHistory.pop_back();
 
-}
+// }
 
-void history() {
-  deque<string>::iterator it = listedHistory.begin();
-  	while (it != listedHistory.end()) {
-  		string tmpString = *it;
-  		int size = tmpString.length();
-  		char tmpChar[size + 1];
-  		strcpy(tmpChar, tmpString.c_str());
-  		tmpChar[size] = '\0';
-  		write(1, tmpChar, size + 1);
-  		*it++;
-  	}
+// void history() {
+//   deque<string>::iterator it = listedHistory.begin();
+//      while (it != listedHistory.end()) {
+//          string tmpString = *it;
+//          int size = tmpString.length();
+//          char tmpChar[size + 1];
+//          strcpy(tmpChar, tmpString.c_str());
+//          tmpChar[size] = '\0';
+//          write(1, tmpChar, size + 1);
+//          *it++;
+//      }
 
-}
+// }
 
+// void uparrow() {
+//  read(0, command, 100);
+//  string temp(command);
+//  if(temp == "0x2")
+//     read(0, command, 100);
+//     if(temp == "0x2")
+//          cout << "UP ARROW MOFO";
+
+// }
 
 void getCommand(){
-
-	writePrompt();
-	read(0, command, 100);
-	string temp(command);
-	//exits the program
-	if(temp == "exit\n") exitStatus = 0;
-	else if(temp == "pwd\n") pwd();
-	else if(temp == "ls\n") ls();
-	else if(temp == "cd\n") cd();
-	else if(temp == "history\n") history();
-	addToHistory(command);
+    do {
+        read(0, &currChar, 1);
+            command[myindex] = currChar[0];
+            myindex++;
+            write(1, &currChar, 1);
+    } while (currChar[0] != '\n');
+    myindex = 0;
+    // string temp(command);
+    // //exits the program
+    // if(temp == "exit\n") exitStatus = 0;
+    // else if(temp == "pwd\n") pwd();
+    // else if(temp == "ls\n") ls();
+    // else if(temp == "cd\n") cd();
+    // else if(temp == "history\n") history();
+    // else if(temp == "0x1") uparrow();
+    // addToHistory(command);
 }
 
 // void printPermissions(){
 //     struct stat fileStat;
 
 
-// 	printf( (S_ISDIR(fileStat.st_mode)) ? "d" : "-");
+//  printf( (S_ISDIR(fileStat.st_mode)) ? "d" : "-");
 //     printf( (fileStat.st_mode & S_IRUSR) ? "r" : "-");
 //     printf( (fileStat.st_mode & S_IWUSR) ? "w" : "-");
 //     printf( (fileStat.st_mode & S_IXUSR) ? "x" : "-");
@@ -135,24 +155,19 @@ void getCommand(){
 
 
 int main (int argc, char** argv) {
-	getCurrentDirectory();
-	// for(int i = 0; i < 100; i++ )
-	// 	cout << currentDirectory[i];
-	// cout << endl;
+    struct termios SavedTermAttributes;
+    SetNonCanonicalMode(0, &SavedTermAttributes);
 
-	while(exitStatus){
-		getCommand();
-	}
+    getCurrentDirectory();
+
+    while(exitStatus){
+        writePrompt();
+        getCommand();
+    }
+    ResetCanonicalMode(0, &SavedTermAttributes);
     return 0;
 }
 
-
-
-// get current working directory: char *getcwd(char *buf, size_t size);
-
-
-
-// get current working directory: char *getcwd(char *buf, size_t size);
 
 
 
