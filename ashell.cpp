@@ -12,6 +12,13 @@
 
 using namespace std;
 
+char deleted1 = 0x08;
+char deleted2 = 0x7F;
+char escape   = 0x1B;
+char lbracket = 0x5B;
+char upArrow  = 0x41;
+char downArrow= 0x42;
+
 bool exitStatus = 1;
 char command[100];
 
@@ -126,52 +133,49 @@ void history() {
 }
 
 
-// void uparrow() {
-//  read(0, command, 100);
-//  string temp(command);
-//  if(temp == "0x2")
-//     read(0, command, 100);
-//     if(temp == "0x2")
-//          cout << "UP ARROW MOFO";
-
-// }
+void checkArrow() {
+	read(0, currChar, 1);
+	if(currChar[0] == lbracket) {
+		read(0, currChar, 1);
+		if(currChar[0] == upArrow) {
+			// put actual functionality here.
+			write(1, "UP", 3);
+		}
+		else if (currChar[0] == downArrow) {
+			// put actual functionality here.
+			write(1, "DOWN", 5);
+		}
+	}
+}
 
 void getCommand(){
 	int myindex = 0;
 	//clear command before next iteration
 	memset(command, '\0', 100);
-	char deleted1 = 0x08;
-	char deleted2 = 0x7F;
-	char uparrow1 = 0x1;
-	char uparrow2 = 0x2;
-	char uparrow3 = 0x3;
-
 	do {
-		read(0, &currChar, 1);
+		read(0, currChar, 1);
 
-		if(currChar[0] == deleted1 || currChar[0] == deleted2) {
+		if((currChar[0] == deleted1 || currChar[0] == deleted2) && myindex > 0) {
 			write(1, "\b \b", 3);
 			myindex--;
 		}
 		else if(isprint(currChar[0]) || currChar[0] == '\n' ) {
 			command[myindex] = currChar[0];
 			myindex++;
-			write(1, &currChar, 1);
+			write(1, currChar, 1);
 		}
-		else if(currChar[0] == uparrow1 ){
-			read(0, currChar, 1);
-			// if(currChar[0] == uparrow2)
+		else if(currChar[0] == escape) {
+			checkArrow();
 		}
 	} while (currChar[0] != '\n');
 	string temp(command);
-	// exits the program
 	addToHistory(command);
+	// exits the program
 	if(temp == "exit\n") exitStatus = 0;
 	else if(temp == "pwd\n") pwd();
 	else if(temp == "ls\n") ls();
 	else if(temp == "cd\n") cd();
 	else if(temp == "history\n") history();
-	// else if(temp == "0x1") uparrow();
 }
 
 // void printPermissions(){
