@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
+#include <sstream>      // std::stringstream, std::stringbuf
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -70,7 +71,7 @@ void writePrompt() {
 	else if (delimitedCurrDirectory.size() == 2) {
 		size += 8;
 		temp = "/home/" + temp + "> ";
-	} 
+	}
 	else {
 		size += 7;
 		temp = "/.../" + temp + "> ";
@@ -97,21 +98,30 @@ void pwd() {
 }
 
 void addToHistory(string currCommand) {
-	listedHistory.push_front(currCommand);
-	if(listedHistory.size() > 10)
-	listedHistory.pop_back();
+	listedHistory.push_back(currCommand);
+	if(listedHistory.size() > 10){
+		listedHistory.pop_front();
+	}
 }
 
 void history() {
 	deque<string>::iterator it = listedHistory.begin();
+	int count = 0;
 	while (it != listedHistory.end()) {
 		string tmpString = *it;
+		//stringstream to convert into to string
+		std::stringstream ss;
+		ss << count;
+		string number = ss.str();
+		//concatenate number and string
+		tmpString = number + " " + tmpString;
 		int size = tmpString.length();
 		char tmpChar[size + 1];
 		strcpy(tmpChar, tmpString.c_str());
 		tmpChar[size] = '\0';
 		write(1, tmpChar, size + 1);
 		*it++;
+		count++;
 	}
 
 }
@@ -128,6 +138,8 @@ void history() {
 
 void getCommand(){
 	int myindex = 0;
+	//clear command before next iteration
+	memset(command, '\0', 100);
 	do {
 		read(0, &currChar, 1);
 		command[myindex] = currChar[0];
@@ -136,13 +148,13 @@ void getCommand(){
 	} while (currChar[0] != '\n');
 	string temp(command);
 	// exits the program
+	addToHistory(command);
 	if(temp == "exit\n") exitStatus = 0;
 	else if(temp == "pwd\n") pwd();
 	else if(temp == "ls\n") ls();
 	else if(temp == "cd\n") cd();
 	else if(temp == "history\n") history();
 	// else if(temp == "0x1") uparrow();
-	addToHistory(command);
 }
 
 // void printPermissions(){
