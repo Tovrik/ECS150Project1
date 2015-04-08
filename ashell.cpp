@@ -110,7 +110,7 @@ void history() {
 	while (it != listedHistory.end()) {
 		string tmpString = *it;
 		//stringstream to convert into to string
-		std::stringstream ss;
+		stringstream ss;
 		ss << count;
 		string number = ss.str();
 		//concatenate number and string
