@@ -123,12 +123,6 @@ void history() {
 		*it++;
 		count++;
 	}
-
-}
-
-void backspace() {
-	char tmp[3] = {'\b', ' ', '\b'};
-	write(1, tmp, 3);
 }
 
 
@@ -148,16 +142,26 @@ void getCommand(){
 	memset(command, '\0', 100);
 	char deleted1 = 0x08;
 	char deleted2 = 0x7F;
+	char uparrow1 = 0x1;
+	char uparrow2 = 0x2;
+	char uparrow3 = 0x3;
+
 	do {
 		read(0, &currChar, 1);
 
-		if(currChar[0] == '\b' || currChar[0] == deleted1 || currChar[0] == deleted2) {  // or 0x7F) {
-			backspace();
+		if(currChar[0] == deleted1 || currChar[0] == deleted2) {
+			write(1, "\b \b", 3);
+			myindex--;
 		}
-		command[myindex] = currChar[0];
-		myindex++;
-		write(1, &currChar, 1);
-
+		else if(isprint(currChar[0]) || currChar[0] == '\n' ) {
+			command[myindex] = currChar[0];
+			myindex++;
+			write(1, &currChar, 1);
+		}
+		else if(currChar[0] == uparrow1 ){
+			read(0, currChar, 1);
+			// if(currChar[0] == uparrow2)
+		}
 	} while (currChar[0] != '\n');
 	string temp(command);
 	// exits the program
