@@ -153,13 +153,12 @@ void getCommand(){
 
 // void exit();
 
-
 int main (int argc, char** argv) {
     struct termios SavedTermAttributes;
     SetNonCanonicalMode(0, &SavedTermAttributes);
 
     getCurrentDirectory();
-
+    startDirectory = currentDirectory;
     while(exitStatus){
         writePrompt();
         getCommand();
