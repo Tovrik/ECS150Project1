@@ -126,6 +126,12 @@ void history() {
 
 }
 
+void backspace() {
+	char tmp[3] = {'\b', ' ', '\b'};
+	write(1, tmp, 3);
+}
+
+
 // void uparrow() {
 //  read(0, command, 100);
 //  string temp(command);
@@ -140,11 +146,18 @@ void getCommand(){
 	int myindex = 0;
 	//clear command before next iteration
 	memset(command, '\0', 100);
+	char deleted1 = 0x08;
+	char deleted2 = 0x7F;
 	do {
 		read(0, &currChar, 1);
+
+		if(currChar[0] == '\b' || currChar[0] == deleted1 || currChar[0] == deleted2) {  // or 0x7F) {
+			backspace();
+		}
 		command[myindex] = currChar[0];
 		myindex++;
 		write(1, &currChar, 1);
+
 	} while (currChar[0] != '\n');
 	string temp(command);
 	// exits the program
