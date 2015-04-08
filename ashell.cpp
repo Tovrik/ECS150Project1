@@ -67,41 +67,41 @@ void writePrompt() {
 }
 
 
-// void cd() {
+void cd() {
 
-// }
+}
 
-// void ls() {
+void ls() {
 
-// }
+}
 
 
-// void pwd() {
-//  getCurrentDirectory();
-//  write(1, currentDirectory, 100);
-//  write(1, "\n", 2);
-// }
+void pwd() {
+ getCurrentDirectory();
+ write(1, currentDirectory, 100);
+ write(1, "\n", 2);
+}
 
-// void addToHistory(string currCommand) {
-//  listedHistory.push_front(currCommand);
-//  if(listedHistory.size() > 10)
-//      listedHistory.pop_back();
+void addToHistory(string currCommand) {
+ listedHistory.push_front(currCommand);
+ if(listedHistory.size() > 10)
+     listedHistory.pop_back();
 
-// }
+}
 
-// void history() {
-//   deque<string>::iterator it = listedHistory.begin();
-//      while (it != listedHistory.end()) {
-//          string tmpString = *it;
-//          int size = tmpString.length();
-//          char tmpChar[size + 1];
-//          strcpy(tmpChar, tmpString.c_str());
-//          tmpChar[size] = '\0';
-//          write(1, tmpChar, size + 1);
-//          *it++;
-//      }
+void history() {
+  deque<string>::iterator it = listedHistory.begin();
+     while (it != listedHistory.end()) {
+         string tmpString = *it;
+         int size = tmpString.length();
+         char tmpChar[size + 1];
+         strcpy(tmpChar, tmpString.c_str());
+         tmpChar[size] = '\0';
+         write(1, tmpChar, size + 1);
+         *it++;
+     }
 
-// }
+}
 
 // void uparrow() {
 //  read(0, command, 100);
@@ -121,15 +121,15 @@ void getCommand(){
             write(1, &currChar, 1);
     } while (currChar[0] != '\n');
     myindex = 0;
-    // string temp(command);
-    // //exits the program
-    // if(temp == "exit\n") exitStatus = 0;
-    // else if(temp == "pwd\n") pwd();
-    // else if(temp == "ls\n") ls();
-    // else if(temp == "cd\n") cd();
-    // else if(temp == "history\n") history();
+    string temp(command);
+    // exits the program
+    if(temp == "exit\n") exitStatus = 0;
+    else if(temp == "pwd\n") pwd();
+    else if(temp == "ls\n") ls();
+    else if(temp == "cd\n") cd();
+    else if(temp == "history\n") history();
     // else if(temp == "0x1") uparrow();
-    // addToHistory(command);
+    addToHistory(command);
 }
 
 // void printPermissions(){
