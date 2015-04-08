@@ -12,6 +12,8 @@
 
 using namespace std;
 
+int historyLocation = 0;
+
 char deleted1 = 0x08;
 char deleted2 = 0x7F;
 char escape   = 0x1B;
@@ -132,18 +134,47 @@ void history() {
 	}
 }
 
+void upInHistory() {
+	if(listedHistory.size() > 0 && historyLocation >= 0) {
+		string tmpCommand = listedHistory.at(listedHistory.size() - historyLocation - 1);
+		int len = tmpCommand.length();
+		//this contains a return char that we need to delete
+		write(1, tmpCommand.c_str(), len);
+		historyLocation++;
+
+	}
+	else {
+		write(1, "\a", 2);
+	}
+}
+
+void downInHistory() {
+	if(listedHistory.size() > 0 && historyLocation > 0) {
+		string tmpCommand = listedHistory.at(listedHistory.size() - historyLocation - 1);
+		int len = tmpCommand.length();
+		write(1, tmpCommand.c_str(), len);
+		historyLocation--;
+	}
+	else {
+		write(1, "\a", 2);
+	}
+}
+
+void clearLine(int commandLength) {
+	for(int i = commandLength; i > 0; i--){
+		write(1, "\b \b", 3);
+	}
+}
 
 void checkArrow() {
 	read(0, currChar, 1);
 	if(currChar[0] == lbracket) {
 		read(0, currChar, 1);
 		if(currChar[0] == upArrow) {
-			// put actual functionality here.
-			write(1, "UP", 3);
+			upInHistory();
 		}
 		else if (currChar[0] == downArrow) {
-			// put actual functionality here.
-			write(1, "DOWN", 5);
+			downInHistory();
 		}
 	}
 }
@@ -165,7 +196,9 @@ void getCommand(){
 			write(1, currChar, 1);
 		}
 		else if(currChar[0] == escape) {
+			clearLine(myindex);
 			checkArrow();
+			myindex = 0;
 		}
 	} while (currChar[0] != '\n');
 	string temp(command);
