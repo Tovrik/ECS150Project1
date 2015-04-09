@@ -9,6 +9,7 @@
 #include <deque>
 #include <stack>
 #include <termios.h>
+#include <dirent.h>
 
 using namespace std;
 
@@ -97,7 +98,13 @@ void cd() {
 }
 
 void ls() {
-
+	struct dirent **entries;
+	int stat = scandir(currentDirectory, &entries, NULL, NULL);
+	if(stat != -1) {
+		for(int i = 0; i < stat; i++){
+			cout << entries[i]->d_name << endl;
+		}
+	}
 }
 
 
@@ -179,7 +186,7 @@ void downInHistory() {
 			tmpCommand = "";
 
 		}
-		else {		
+		else {
 			tmpCommand = listedHistory.at(listedHistory.size() - historyLocation + 1);
 		}
 		int len = tmpCommand.length();
