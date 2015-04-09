@@ -23,8 +23,8 @@ bool exitStatus = 1;
 int historyLocation = 0;
 int myindex = 0;
 
+// command buffer
 char command[100];
-
 //char buffer
 char currChar[1];
 //start directory
@@ -251,11 +251,6 @@ void getCommand(){
 // }
 
 
-// Location currLoc();
-
-// void exit();
-
-
 int main (int argc, char** argv) {
 	struct termios SavedTermAttributes;
 	SetNonCanonicalMode(0, &SavedTermAttributes);
@@ -314,13 +309,9 @@ int main (int argc, char** argv) {
 
 
 
-// NITTAS BULLSHIT:
+// NITTAS COMMENTS:
 // read(STDIN_FILENO, Buffer, size); //STDIN_FILENO = 0 generally
 // write(1, Buffer, size);
-// "\b \b"
-// 0x08 and 0x7F treat them the same
-
-// e(1, Buffer, size);
 // "\b \b"
 // 0x08 and 0x7F treat them the same
 
