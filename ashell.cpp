@@ -5,6 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include "noncanmode.c"
 #include <deque>
 #include <stack>
@@ -99,10 +100,44 @@ void cd() {
 
 void ls() {
 	struct dirent **entries;
-	int stat = scandir(currentDirectory, &entries, NULL, NULL);
-	if(stat != -1) {
-		for(int i = 0; i < stat; i++){
-			cout << entries[i]->d_name << endl;
+	struct stat permissions;
+	int status = scandir(currentDirectory, &entries, NULL, NULL);
+	if(status != -1) {
+		for(int i = 0; i < status; i++){
+			string currDir(currentDirectory);
+			string browsedFile(entries[i]->d_name);
+			string filename = currDir + "/" + browsedFile;
+			string perms = "";
+			stat(filename.c_str(), &permissions);
+
+			int tmp = permissions.st_mode;
+			if(S_ISDIR(tmp)) perms += "d";
+			else perms += "-";
+			if((tmp & S_IRUSR) == S_IRUSR) perms += "r";
+			else perms += "-";
+			if((tmp & S_IWUSR) == S_IWUSR) perms += "w";
+			else perms += "-";
+			if((tmp & S_IXUSR) == S_IXUSR) perms += "x";
+			else perms += "-";
+			if((tmp & S_IRGRP) == S_IRGRP) perms += "r";
+			else perms += "-";
+			if((tmp & S_IWGRP) == S_IWGRP) perms += "w";
+			else perms += "-";
+			if((tmp & S_IXGRP) == S_IXGRP) perms += "x";
+			else perms += "-";
+			if((tmp & S_IROTH) == S_IROTH) perms += "r";
+			else perms += "-";
+			if((tmp & S_IWOTH) == S_IWOTH) perms += "w";
+			else perms += "-";
+			if((tmp & S_IXOTH) == S_IXOTH) perms += "x ";
+			else perms += "- ";
+
+
+			write(1, perms.c_str(), 11);
+			write(1, browsedFile.c_str(), 50);
+			write(1, "\n", 1);
+			// cout << entries[i]->d_name << endl;
+
 		}
 	}
 }
