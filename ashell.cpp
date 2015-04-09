@@ -12,8 +12,6 @@
 
 using namespace std;
 
-int historyLocation = 0;
-
 char deleted1 = 0x08;
 char deleted2 = 0x7F;
 char escape   = 0x1B;
@@ -22,6 +20,9 @@ char upArrow  = 0x41;
 char downArrow= 0x42;
 
 bool exitStatus = 1;
+int historyLocation = 0;
+int myindex = 0;
+
 char command[100];
 
 //char buffer
@@ -114,55 +115,81 @@ void addToHistory(string currCommand) {
 }
 
 void history() {
-	deque<string>::iterator it = listedHistory.begin();
 	int count = 0;
-	while (it != listedHistory.end()) {
-		string tmpString = *it;
+	while (count < listedHistory.size()) {
 		//stringstream to convert into to string
 		stringstream ss;
 		ss << count;
 		string number = ss.str();
 		//concatenate number and string
-		tmpString = number + " " + tmpString;
-		int size = tmpString.length();
-		char tmpChar[size + 1];
-		strcpy(tmpChar, tmpString.c_str());
-		tmpChar[size] = '\0';
-		write(1, tmpChar, size + 1);
-		*it++;
+		string out = number + " " + listedHistory.at(count);
+		int size = out.length();
+		char outArray[size + 1];
+		strcpy(outArray, out.c_str());
+		outArray[size] = '\0';
+		write(1, outArray, size + 1);
 		count++;
-	}
-}
-
-void upInHistory() {
-	if(listedHistory.size() > 0 && historyLocation >= 0) {
-		string tmpCommand = listedHistory.at(listedHistory.size() - historyLocation - 1);
-		int len = tmpCommand.length();
-		//this contains a return char that we need to delete
-		write(1, tmpCommand.c_str(), len);
-		historyLocation++;
-
-	}
-	else {
-		write(1, "\a", 2);
-	}
-}
-
-void downInHistory() {
-	if(listedHistory.size() > 0 && historyLocation > 0) {
-		string tmpCommand = listedHistory.at(listedHistory.size() - historyLocation - 1);
-		int len = tmpCommand.length();
-		write(1, tmpCommand.c_str(), len);
-		historyLocation--;
-	}
-	else {
-		write(1, "\a", 2);
 	}
 }
 
 void clearLine(int commandLength) {
 	for(int i = commandLength; i > 0; i--){
 		write(1, "\b \b", 3);
+	}
+}
+
+void checkCommand () {
+	string temp(command);
+	addToHistory(command);
+	// exits the program
+	if(temp == "exit\n") exitStatus = 0;
+	else if(temp == "pwd\n") pwd();
+	else if(temp == "ls\n") ls();
+	else if(temp == "cd\n") cd();
+	else if(temp == "history\n") history();
+}
+
+void upInHistory() {
+	if(historyLocation >= 0 && historyLocation < listedHistory.size()) {
+		if (historyLocation != 0) {
+			// -1 to get rid of null character considered in length
+			clearLine(myindex);
+		}
+		// -1 because deque is 0 indexed
+		string tmpCommand = listedHistory.at(listedHistory.size() - 1 - historyLocation);
+		int len = tmpCommand.length();
+		//this contains a return char that we need to delete. I just wrote len-1 instead of len -shai.
+		write(1, tmpCommand.c_str(), len-1);
+		strcpy(command,tmpCommand.c_str());
+		myindex = len-1;
+		historyLocation++;
+	}
+	else {
+		write(1, "\a", 1);
+	}
+}
+
+void downInHistory() {
+	if(historyLocation > 0 && historyLocation <= listedHistory.size()) {
+		if (historyLocation != 0) {
+			clearLine(myindex);
+		}
+		string tmpCommand;
+		if (historyLocation < 2) {
+			tmpCommand = "";
+
+		}
+		else {		
+			tmpCommand = listedHistory.at(listedHistory.size() - historyLocation + 1);
+		}
+		int len = tmpCommand.length();
+		write(1, tmpCommand.c_str(), len-1);
+		strcpy(command,tmpCommand.c_str());
+		myindex = len-1;
+		historyLocation--;
+	}
+	else {
+		write(1, "\a", 1);
 	}
 }
 
@@ -180,7 +207,8 @@ void checkArrow() {
 }
 
 void getCommand(){
-	int myindex = 0;
+	myindex = 0;
+	historyLocation = 0;
 	//clear command before next iteration
 	memset(command, '\0', 100);
 	do {
@@ -188,27 +216,22 @@ void getCommand(){
 
 		if((currChar[0] == deleted1 || currChar[0] == deleted2) && myindex > 0) {
 			write(1, "\b \b", 3);
+			command[myindex] = '\0';
 			myindex--;
 		}
-		else if(isprint(currChar[0]) || currChar[0] == '\n' ) {
+		else if(isprint(currChar[0]) || currChar[0] == '\n') {
 			command[myindex] = currChar[0];
 			myindex++;
 			write(1, currChar, 1);
 		}
 		else if(currChar[0] == escape) {
-			clearLine(myindex);
+			if (historyLocation == 0) {
+				clearLine(myindex);
+			}
 			checkArrow();
-			myindex = 0;
 		}
 	} while (currChar[0] != '\n');
-	string temp(command);
-	addToHistory(command);
-	// exits the program
-	if(temp == "exit\n") exitStatus = 0;
-	else if(temp == "pwd\n") pwd();
-	else if(temp == "ls\n") ls();
-	else if(temp == "cd\n") cd();
-	else if(temp == "history\n") history();
+	checkCommand();
 }
 
 // void printPermissions(){
