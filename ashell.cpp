@@ -158,10 +158,7 @@ void checkCommand () {
 
 void upInHistory() {
 	if(historyLocation >= 0 && historyLocation < listedHistory.size()) {
-		if (historyLocation != 0) {
-			// -1 to get rid of null character considered in length
-			clearLine(myindex);
-		}
+		clearLine(myindex);
 		// -1 because deque is 0 indexed
 		string tmpCommand = listedHistory.at(listedHistory.size() - 1 - historyLocation);
 		int len = tmpCommand.length();
@@ -178,21 +175,22 @@ void upInHistory() {
 
 void downInHistory() {
 	if(historyLocation > 0 && historyLocation <= listedHistory.size()) {
-		if (historyLocation != 0) {
-			clearLine(myindex);
-		}
+		int len;
+		clearLine(myindex);
 		string tmpCommand;
 		if (historyLocation < 2) {
 			tmpCommand = "";
-
+			myindex = 0;
+			len = 1;
 		}
 		else {
 			tmpCommand = listedHistory.at(listedHistory.size() - historyLocation + 1);
+			len = tmpCommand.length();
+			myindex = len-1;
+
 		}
-		int len = tmpCommand.length();
 		write(1, tmpCommand.c_str(), len-1);
 		strcpy(command,tmpCommand.c_str());
-		myindex = len-1;
 		historyLocation--;
 	}
 	else {
@@ -232,9 +230,6 @@ void getCommand(){
 			write(1, currChar, 1);
 		}
 		else if(currChar[0] == escape) {
-			if (historyLocation == 0) {
-				clearLine(myindex);
-			}
 			checkArrow();
 		}
 	} while (currChar[0] != '\n');
