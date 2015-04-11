@@ -11,6 +11,9 @@
 #include <stack>
 #include <termios.h>
 #include <dirent.h>
+#include <vector>
+
+#define BUFFER_SIZE 1024
 
 using namespace std;
 
@@ -26,13 +29,15 @@ int historyLocation = 0;
 int myindex = 0;
 
 // command buffer
-char command[100];
+char command[BUFFER_SIZE];
+//broken down command by spaces
+vector<char*> delimitedCommand;
 //char buffer
 char currChar[1];
 //start directory
-char startDirectory[100];
+char startDirectory[BUFFER_SIZE];
 //char array for current working directory absolute path
-char currentDirectory[100];
+char currentDirectory[BUFFER_SIZE];
 //queue of char arrays that will correspond to history of commands
 deque<string> listedHistory;
 //vector of char arrays
@@ -41,13 +46,13 @@ stack<string> delimitedCurrDirectory;
 
 //gets current directory absolute path name
 void getCurrentDirectory(){
-	memset(currentDirectory, '\0', 100);
-	getcwd(currentDirectory, 100);
+	memset(currentDirectory, '\0', BUFFER_SIZE);
+	getcwd(currentDirectory, BUFFER_SIZE);
 }
 
 void delimit(){
 	string temp = "";
-	for (int i = 0; i < 100; i++) {
+	for (int i = 0; i < BUFFER_SIZE; i++) {
 		// first char is alwats '/'
 		if (i == 0) {
 			delimitedCurrDirectory.push("/");
@@ -68,6 +73,32 @@ void delimit(){
 		}
 	}
 }
+
+void delimitCommand(){
+// 	// for(int k = 0; k < delimitedCommand.size(); k++) {
+// 	// 	memset(delimitedCommand.at(k), '\0', BUFFER_SIZE);
+// 	// }
+
+// 	string tmp = "";
+// 	int count = 0;
+// 	for(int i = 0; i < BUFFER_SIZE; i++) {
+// 		if(command[i] == ' '){
+// 			char tempChar[BUFFER_SIZE];
+// 			for(int j = 0; j < tmp.length(); j++) {
+// 				tempChar[j] = tmp[j];
+// 			}
+// 			delimitedCommand.push_back(tempChar);
+// 			count++;
+// 			write(1, tempChar, BUFFER_SIZE);
+// 		}
+// 		else if (command[i] == '\n') break;
+// 		else {
+// 			tmp += command[i];
+// 		}
+// 	}
+
+}
+
 
 void writePrompt() {
 	//add /home/stpeters... stack <= 2
@@ -95,7 +126,7 @@ void writePrompt() {
 
 
 void cd() {
-
+	// int ret = chdir(com)
 }
 
 void ls() {
@@ -136,16 +167,16 @@ void ls() {
 			write(1, perms.c_str(), 11);
 			write(1, browsedFile.c_str(), 50);
 			write(1, "\n", 1);
-			// cout << entries[i]->d_name << endl;
-
+			free(entries[i]);
 		}
+
 	}
 }
 
 
 void pwd() {
 	getCurrentDirectory();
-	write(1, currentDirectory, 100);
+	write(1, currentDirectory, BUFFER_SIZE);
 	write(1, "\n", 2);
 }
 
@@ -250,7 +281,7 @@ void getCommand(){
 	myindex = 0;
 	historyLocation = 0;
 	//clear command before next iteration
-	memset(command, '\0', 100);
+	memset(command, '\0', BUFFER_SIZE);
 	do {
 		read(0, currChar, 1);
 
@@ -268,24 +299,10 @@ void getCommand(){
 			checkArrow();
 		}
 	} while (currChar[0] != '\n');
+	delimitCommand();
 	checkCommand();
 }
 
-// void printPermissions(){
-//     struct stat fileStat;
-
-
-//  printf( (S_ISDIR(fileStat.st_mode)) ? "d" : "-");
-//     printf( (fileStat.st_mode & S_IRUSR) ? "r" : "-");
-//     printf( (fileStat.st_mode & S_IWUSR) ? "w" : "-");
-//     printf( (fileStat.st_mode & S_IXUSR) ? "x" : "-");
-//     printf( (fileStat.st_mode & S_IRGRP) ? "r" : "-");
-//     printf( (fileStat.st_mode & S_IWGRP) ? "w" : "-");
-//     printf( (fileStat.st_mode & S_IXGRP) ? "x" : "-");
-//     printf( (fileStat.st_mode & S_IROTH) ? "r" : "-");
-//     printf( (fileStat.st_mode & S_IWOTH) ? "w" : "-");
-//     printf( (fileStat.st_mode & S_IXOTH) ? "x" : "-");
-// }
 
 
 int main (int argc, char** argv) {
