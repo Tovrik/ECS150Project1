@@ -86,6 +86,7 @@ void delimitCommand(){
 	for(int i = 0; i < strlen(command); i++) {
 		if(command[i] == ' ' || command[i] == '\n'){
 			char *tempChar = new char [BUFFER_SIZE];
+			// if (command[i] == '\n') tmp += command[i];
 			for (int j = 0; j < tmp.length(); j++) {
 				tempChar[j] = tmp[j];
 			}
@@ -235,7 +236,7 @@ void execute(string temp) {
 	if(temp == "exit\n") exitStatus = 0;
 	else if(temp == "pwd\n") pwd();
 	else if(temp == "ls\n") ls();
-	else if(temp == "cd\n") cd();
+	// else if(temp == "cd\n") cd();
 	else if(temp == "history\n") history();
 	else {
 		// have to convert vector to array to be able to pass into execvp. instead of copying 
@@ -248,15 +249,19 @@ void execute(string temp) {
 // handles the forking/piping/duping of commands
 void checkCommandType() {
 	string temp(command);
+	if (!strcmp(argVector[0], "cd") || !strcmp(argVector[0], "exit"))
+	{
+		execute(temp);
+	}
 	// no redirection requires no dup2() or pipe()
-	if (temp.find("|") == string::npos && temp.find("<") == string::npos && temp.find(">") == string::npos) {
+	else if (temp.find("|") == string::npos && temp.find("<") == string::npos && temp.find(">") == string::npos) {
 		// http://timmurphy.org/2014/04/26/using-fork-in-cc-a-minimum-working-example/
 		pid_t pid = fork();
 		// child process
 		if (pid == 0) {
 			execute(temp);
 			// exit 0 from child process
-			if (exitStatus == 0) exit(0);
+			exit(0);
 		}
 		// parent process
 		else if (pid > 0) {
@@ -264,7 +269,7 @@ void checkCommandType() {
 			// changes exitStatus in child process. global vars aren't shared between processes so 
 			// we need to return the exitStatus from the child processes i.e. "exit(0)". Also, if the
 			// command contains a "&" at the end we dont need to wait b/c it's running in bg.
-			// if (!strcmp(argVector.back(), "&")) 
+			// if (strcmp(argVector.back(), "&")) 
 			// {
 				wait(NULL);
 			// }
