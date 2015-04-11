@@ -97,6 +97,9 @@ void delimitCommand(){
 			tmp += command[i];
 		}
 	}
+	// command list has to be terminated by a NULL
+	// delimitedCommand.push_back(NULL);
+
 	// print for checking
 	for (int i = 0; i < delimitedCommand.size(); ++i)
 	{
@@ -135,6 +138,13 @@ void cd() {
 	// int ret = chdir(com)
 }
 
+// The ls command you will be doing internally needs to do the following:
+// 1. open the directory specified (if none specified open up ./) use the opendir from dirent.h 
+// 2. for each entry in the directory:
+//   2.1 read in the entry using readdir (actually readdir will return NULL if at the end so might be while loop)
+//   2.2 get the permissions of the entry using the ->d_name and a call to stat (see the stat system call also don't forget to concatenate the directory name before calling stat)
+//   2.3 output the permissions rwx, etc then output the entry name ->d_name
+// 3. close the directory using closedir
 void ls() {
 	struct dirent **entries;
 	struct stat permissions;
@@ -215,38 +225,63 @@ void clearLine(int commandLength) {
 	for(int i = commandLength; i > 0; i--){
 		write(1, "\b \b", 3);
 	}
+	memset(command, '\0', BUFFER_SIZE);
+
 }
 
-void execute() {
-	string temp(command);
-	// no piping
-	if (temp.find("|") == string::npos) {
-
-		// http://timmurphy.org/2014/04/26/using-fork-in-cc-a-minimum-working-example/
-		pid_t pid = fork();
-		// child process
-		if (pid == 0) {
-
-		}
-		// parent process
-		else if (pid > 0) {
-			return;
-		}
-	}
-}
-
-void checkCommand () {
-	string temp(command);
-	addToHistory(command);
-	// exits the program
+void execute(string temp) {
 	if(temp == "exit\n") exitStatus = 0;
 	else if(temp == "pwd\n") pwd();
 	else if(temp == "ls\n") ls();
 	else if(temp == "cd\n") cd();
 	else if(temp == "history\n") history();
-	else {
-		execute();
+}
+
+// handles the forking/piping/duping of commands
+void checkCommandType() {
+	string temp(command);
+	// no redirection requires no dup2() or pipe()
+	if (temp.find("|") == string::npos && temp.find("<") == string::npos && temp.find(">") == string::npos) {
+		// http://timmurphy.org/2014/04/26/using-fork-in-cc-a-minimum-working-example/
+		pid_t pid = fork();
+		// child process
+		if (pid == 0) {
+			execute(temp);
+			// exit 0 from child process
+			if (exitStatus == 0) exit(0);
+		}
+		// parent process
+		else if (pid > 0) {
+			// wait for children to complete then return. PROBLEM: exit doesn't work because it only
+			// changes exitStatus in child process. global vars aren't shared between processes so 
+			// we need to return the exitStatus from the child processes i.e "exit(0)"
+			wait(NULL);
+			return;
+		}
 	}
+}
+
+// arg array needed for passing into execvp()
+void makeArgArray() {
+	for (int i = 0; i < delimitedCommand.size(); ++i)
+	{
+		// add to arg Array if not "<" or ">" or "|"
+	}
+	// command list has to be terminated by a NULL
+	// args[last] = NULL
+}
+
+// need to handle case where piping/redirection doesnt have spaces "a.txt<b.txt"
+void checkCommandArgs () {
+	string temp(command);
+	addToHistory(command);
+	// command has spaces in it meaning it has args and must be delimited
+	if (temp.find(" ") != string::npos) {
+		cout << "spaces";
+		delimitCommand();
+		makeArgArray();
+	}
+	checkCommandType();
 }
 
 void upInHistory() {
@@ -326,8 +361,7 @@ void getCommand(){
 			checkArrow();
 		}
 	} while (currChar[0] != '\n');
-	delimitCommand();
-	checkCommand();
+	checkCommandArgs();
 }
 
 
