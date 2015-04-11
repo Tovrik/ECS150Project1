@@ -107,7 +107,7 @@ void delimitCommand(){
 	// for (int i = 0; i < delimitedCommand.size(); ++i)
 	// {
 	// 	write(1, delimitedCommand[i], strlen(delimitedCommand[i]));
-	// 	write(1, "\n", 1);	
+	// 	write(1, "\n", 1);
 	// }
 }
 
@@ -142,7 +142,7 @@ void cd() {
 }
 
 // The ls command you will be doing internally needs to do the following:
-// 1. open the directory specified (if none specified open up ./) use the opendir from dirent.h 
+// 1. open the directory specified (if none specified open up ./) use the opendir from dirent.h
 // 2. for each entry in the directory:
 //   2.1 read in the entry using readdir (actually readdir will return NULL if at the end so might be while loop)
 //   2.2 get the permissions of the entry using the ->d_name and a call to stat (see the stat system call also don't forget to concatenate the directory name before calling stat)
@@ -182,13 +182,12 @@ void ls() {
 			if((tmp & S_IXOTH) == S_IXOTH) perms += "x ";
 			else perms += "- ";
 
-
 			write(1, perms.c_str(), 11);
-			write(1, browsedFile.c_str(), 50);
+			write(1, browsedFile.c_str(), browsedFile.length());
 			write(1, "\n", 1);
 			free(entries[i]);
 		}
-
+		free(entries);
 	}
 }
 
@@ -239,7 +238,7 @@ void execute(string temp) {
 	// else if(temp == "cd\n") cd();
 	else if(temp == "history\n") history();
 	else {
-		// have to convert vector to array to be able to pass into execvp. instead of copying 
+		// have to convert vector to array to be able to pass into execvp. instead of copying
 		// vector i just created a pointed to a char * and set it to front of vector.
 		char** argArray = &argVector[0];
 		execvp(argArray[0], argArray);
@@ -266,10 +265,10 @@ void checkCommandType() {
 		// parent process
 		else if (pid > 0) {
 			// wait for children to complete then return. PROBLEM: exit doesn't work because it only
-			// changes exitStatus in child process. global vars aren't shared between processes so 
+			// changes exitStatus in child process. global vars aren't shared between processes so
 			// we need to return the exitStatus from the child processes i.e. "exit(0)". Also, if the
 			// command contains a "&" at the end we dont need to wait b/c it's running in bg.
-			// if (strcmp(argVector.back(), "&")) 
+			// if (strcmp(argVector.back(), "&"))
 			// {
 				wait(NULL);
 			// }
