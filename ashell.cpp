@@ -75,28 +75,34 @@ void delimit(){
 }
 
 void delimitCommand(){
-// 	// for(int k = 0; k < delimitedCommand.size(); k++) {
-// 	// 	memset(delimitedCommand.at(k), '\0', BUFFER_SIZE);
-// 	// }
-
-// 	string tmp = "";
-// 	int count = 0;
-// 	for(int i = 0; i < BUFFER_SIZE; i++) {
-// 		if(command[i] == ' '){
-// 			char tempChar[BUFFER_SIZE];
-// 			for(int j = 0; j < tmp.length(); j++) {
-// 				tempChar[j] = tmp[j];
-// 			}
-// 			delimitedCommand.push_back(tempChar);
-// 			count++;
-// 			write(1, tempChar, BUFFER_SIZE);
-// 		}
-// 		else if (command[i] == '\n') break;
-// 		else {
-// 			tmp += command[i];
-// 		}
-// 	}
-
+	// for(int k = 0; k < delimitedCommand.size(); k++) {
+	// 	memset(delimitedCommand.at(k), '\0', BUFFER_SIZE);
+	// }
+	delimitedCommand.clear();
+	string tmp = "";
+	// int count = 0;
+	for(int i = 0; i < strlen(command); i++) {
+		if(command[i] == ' ' || command[i] == '\n'){
+			char *tempChar = new char [BUFFER_SIZE];
+			for (int j = 0; j < tmp.length(); j++) {
+				tempChar[j] = tmp[j];
+			}
+			delimitedCommand.push_back(tempChar);
+			// count++;
+			tmp = "";
+			if (command[i] == '\n') break;
+		}
+		else if (isprint(command[i]))
+		{
+			tmp += command[i];
+		}
+	}
+	// print for checking
+	for (int i = 0; i < delimitedCommand.size(); ++i)
+	{
+		write(1, delimitedCommand[i], strlen(delimitedCommand[i]));
+		write(1, "\n", 1);	
+	}
 }
 
 
@@ -211,6 +217,24 @@ void clearLine(int commandLength) {
 	}
 }
 
+void execute() {
+	string temp(command);
+	// no piping
+	if (temp.find("|") == string::npos) {
+
+		// http://timmurphy.org/2014/04/26/using-fork-in-cc-a-minimum-working-example/
+		pid_t pid = fork();
+		// child process
+		if (pid == 0) {
+
+		}
+		// parent process
+		else if (pid > 0) {
+			return;
+		}
+	}
+}
+
 void checkCommand () {
 	string temp(command);
 	addToHistory(command);
@@ -220,6 +244,9 @@ void checkCommand () {
 	else if(temp == "ls\n") ls();
 	else if(temp == "cd\n") cd();
 	else if(temp == "history\n") history();
+	else {
+		execute();
+	}
 }
 
 void upInHistory() {
