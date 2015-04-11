@@ -32,6 +32,8 @@ int myindex = 0;
 char command[BUFFER_SIZE];
 //broken down command by spaces
 vector<char*> delimitedCommand;
+//arg array
+vector<char*> argVector;
 //char buffer
 char currChar[1];
 //start directory
@@ -101,11 +103,11 @@ void delimitCommand(){
 	// delimitedCommand.push_back(NULL);
 
 	// print for checking
-	for (int i = 0; i < delimitedCommand.size(); ++i)
-	{
-		write(1, delimitedCommand[i], strlen(delimitedCommand[i]));
-		write(1, "\n", 1);	
-	}
+	// for (int i = 0; i < delimitedCommand.size(); ++i)
+	// {
+	// 	write(1, delimitedCommand[i], strlen(delimitedCommand[i]));
+	// 	write(1, "\n", 1);	
+	// }
 }
 
 
@@ -235,6 +237,12 @@ void execute(string temp) {
 	else if(temp == "ls\n") ls();
 	else if(temp == "cd\n") cd();
 	else if(temp == "history\n") history();
+	else {
+		// have to convert vector to array to be able to pass into execvp. instead of copying 
+		// vector i just created a pointed to a char * and set it to front of vector.
+		char** argArray = &argVector[0];
+		execvp(argArray[0], argArray);
+	}
 }
 
 // handles the forking/piping/duping of commands
@@ -254,33 +262,36 @@ void checkCommandType() {
 		else if (pid > 0) {
 			// wait for children to complete then return. PROBLEM: exit doesn't work because it only
 			// changes exitStatus in child process. global vars aren't shared between processes so 
-			// we need to return the exitStatus from the child processes i.e "exit(0)"
-			wait(NULL);
+			// we need to return the exitStatus from the child processes i.e. "exit(0)". Also, if the
+			// command contains a "&" at the end we dont need to wait b/c it's running in bg.
+			// if (!strcmp(argVector.back(), "&")) 
+			// {
+				wait(NULL);
+			// }
 			return;
 		}
 	}
 }
 
 // arg array needed for passing into execvp()
-void makeArgArray() {
+void makeArgVector() {
 	for (int i = 0; i < delimitedCommand.size(); ++i)
 	{
 		// add to arg Array if not "<" or ">" or "|"
+		if (string(delimitedCommand[i]).find("|") == string::npos && string(delimitedCommand[i]).find("<") == string::npos && string(delimitedCommand[i]).find(">") == string::npos) {
+			argVector.push_back(delimitedCommand[i]);
+		}
 	}
 	// command list has to be terminated by a NULL
-	// args[last] = NULL
+	argVector.push_back(NULL);
 }
 
 // need to handle case where piping/redirection doesnt have spaces "a.txt<b.txt"
 void checkCommandArgs () {
 	string temp(command);
 	addToHistory(command);
-	// command has spaces in it meaning it has args and must be delimited
-	if (temp.find(" ") != string::npos) {
-		cout << "spaces";
-		delimitCommand();
-		makeArgArray();
-	}
+	delimitCommand();
+	makeArgVector();
 	checkCommandType();
 }
 
@@ -344,6 +355,7 @@ void getCommand(){
 	historyLocation = 0;
 	//clear command before next iteration
 	memset(command, '\0', BUFFER_SIZE);
+	argVector.clear();
 	do {
 		read(0, currChar, 1);
 
