@@ -33,6 +33,8 @@ int myindex = 0;
 char command[BUFFER_SIZE];
 //broken down command by spaces
 vector<char*> delimitedCommand;
+
+vector<string> delimtedByPipeCommand;
 //arg array
 vector<char*> argVector;
 //char buffer
@@ -104,15 +106,21 @@ void delimitCommand(){
 			tmp += command[i];
 		}
 	}
-	// command list has to be terminated by a NULL
-	// delimitedCommand.push_back(NULL);
+}
 
-	// print for checking
-	// for (int i = 0; i < delimitedCommand.size(); ++i)
-	// {
-	// 	write(1, delimitedCommand[i], strlen(delimitedCommand[i]));
-	// 	write(1, "\n", 1);
-	// }
+void delimitByPipe(){
+	delimtedByPipeCommand.clear();
+	string tmp = "";
+
+	for (int i = 0; i < strlen(command); i++) {
+		if(command[i] == '|' || command[i] == '\n') {
+			delimtedByPipeCommand.push_back(tmp);
+			tmp = "";
+		}
+		else if(isprint(command[i])) {
+			tmp += command[i];
+		}
+	}
 }
 
 
@@ -348,6 +356,9 @@ void checkCommandType() {
 			// outputting to file
 			if(temp.find(">") != string::npos) {
 				redirectOut();
+			}
+			if(temp.find("|") != string::npos) {
+
 			}
 			execute(temp);
 			// exit 0 from child process
