@@ -259,10 +259,10 @@ void clearLine(int commandLength) {
 void execute(string temp) {
 	string tmpString(delimitedCommand[0]);
 	if(temp == "exit\n") exitStatus = 0;
-	else if(temp == "pwd\n") pwd();
+	else if(tmpString == "pwd") pwd();
 	else if(tmpString == "ls") ls();
 	else if(tmpString == "cd") cd();
-	else if(temp == "history\n") history();
+	else if(tmpString == "history") history();
 	else {
 		// have to convert vector to array to be able to pass into execvp. instead of copying 
 		// vector I just created a pointer to a char * and set it to front of vector.
@@ -275,12 +275,12 @@ void redirectIn() {
 	char* path_name;
 	for (int i = 0; i < delimitedCommand.size(); ++i)
 	{
-		if (delimitedCommand[i] == "<")
+		if (!strcmp(delimitedCommand[i], "<"))
 		{
 			path_name = delimitedCommand[i+1];
 		}	
 	}
-	int fd = open(path_name, O_WRONLY | O_CREAT);
+	int fd = open(path_name, O_RDONLY, S_IRWXU | S_IRWXG | S_IRWXO);
 	dup2(fd, 0);
 	close(fd);
 }
@@ -289,12 +289,12 @@ void redirectOut() {
 	char* path_name;
 	for (int i = 0; i < delimitedCommand.size(); ++i)
 	{
-		if (delimitedCommand[i] == ">")
+		if (!strcmp(delimitedCommand[i], ">"))
 		{
-			path_name = delimitedCommand[i-1];
+			path_name = delimitedCommand[i+1];
 		}	
 	}
-	int fd = open(path_name, O_RDONLY);
+	int fd = open(path_name, O_WRONLY | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
 	dup2(fd, 1);
 	close(fd);
 }
@@ -334,22 +334,18 @@ void checkCommandType() {
 	}
 	// no redirection requires no dup2() or pipe()
 	else if (temp.find("|") == string::npos) {
-	
-
-	// reading file in
-	if(temp.find("<") != string::npos) {
-		redirectIn();
-	}
-	// outputting to file
-	else if(temp.find(">") != string::npos) {
-		redirectOut();
-	}
-
-	
 		// http://timmurphy.org/2014/04/26/using-fork-in-cc-a-minimum-working-example/
 		pid_t pid = fork();
 		// child process
 		if (pid == 0) {
+			// reading file in
+			if(temp.find("<") != string::npos) {
+				redirectIn();
+			}
+			// outputting to file
+			else if(temp.find(">") != string::npos) {
+				redirectOut();
+			}
 			execute(temp);
 			// exit 0 from child process
 			exit(0);
