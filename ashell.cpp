@@ -54,6 +54,9 @@ void getCurrentDirectory(){
 
 void delimit(){
 	string temp = "";
+	for(int i = 0; i < delimitedCurrDirectory.size(); i++) {
+		delimitedCurrDirectory.pop();
+	}
 	for (int i = 0; i < BUFFER_SIZE; i++) {
 		// first char is alwats '/'
 		if (i == 0) {

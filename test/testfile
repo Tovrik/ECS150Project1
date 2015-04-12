@@ -1,0 +1,500 @@
+    6  make
+    7  ssh stpeters@pc3.cs.ucdavis.edu
+    8  git commit -a -m "fixed it by making currChar an array, fuck if I know"
+    9  git push
+   10  ls
+   11  make
+   12  make
+   13  make
+   14  git commit -a -m "history works now too"
+   15  git push
+   16  make
+   17  make
+   18  ls
+   19  git add .
+   20  git commit -m "added noncanmode.c"
+   21  git push
+   22  make
+   23  make
+   24  git status
+   25  git rm ashell.out
+   26  git stash
+   27  git pull
+   28  make
+   29  make
+   30  make
+   31  make
+   32  make
+   33  make
+   34  clear
+   35  make
+   36  make
+   37  make
+   38  make
+   39  make
+   40  git add .
+   41  git commit -m "working history, pwd, and exit"
+   42  git push
+   43  make
+   44  make
+   45  make
+   46  make
+   47  make
+   48  make
+   49  touch .gitignore
+   50  pico .gitignore 
+   51  git add .gitignore 
+   52  git commit -m "added .gitignore"
+   53  git pus
+   54  git push
+   55  git status
+   56  make
+   57  make
+   58  git make clean
+   59  make clean
+   60  ls
+   61  git add .
+   62  git rm --cached ashell.out
+   63  git add .
+   64  git commit -m "added backspace and gitignore"
+   65  git push
+   66  git status
+   67  git status
+   68  git add .
+   69  git commit -m "added backspace and gitignore"
+   70  git push
+   71  git pul
+   72  git pull
+   73  git status
+   74  git add .
+   75  git commit -m "added backspace and gitignore"
+   76  git push
+   77  git pull
+   78  make
+   79  make
+   80  make
+   81  make
+   82  make
+   83  make
+   84  git statusx
+   85  exit
+   86  ssh stpeters@pc3.cs.ucdavis.edu
+   87  make
+   88  ls
+   89  make clean
+   90  git add .
+   91  git commit -m "fixed delete"
+   92  git push
+   93  make
+   94  make
+   95  make
+   96  make
+   97  gcc noncanmode.c 
+   98  ./a.out
+   99  make
+  100  make
+  101  make
+  102  ./a.outex
+  103  make
+  104  ls
+  105  ./a.out
+  106  git stash
+  107  git pull
+  108  make
+  109  make
+  110  make
+  111  make
+  112  make
+  113  make
+  114  make
+  115  mmake
+  116  make
+  117  gdb ashell.out
+  118  gdb ashell.out
+  119  lldb ashell.out
+  120  make
+  121  make
+  122  make
+  123  make
+  124  make
+  125  clear
+  126  make
+  127  clear
+  128  make
+  129  clear
+  130  make
+  131  make
+  132  make
+  133  make
+  134  make
+  135  make
+  136  ls
+  137  cd
+  138  ls
+  139  cd D
+  140  cd D
+  141  ls
+  142  cd Documents/
+  143  ls
+  144  cd SC
+  145  cd School\ Work/
+  146  ls
+  147  make
+  148  make
+  149  make
+  150  ls
+  151  make
+  152  make
+  153  make
+  154  make
+  155  make
+  156  make
+  157  make
+  158  make
+  159  history
+  160  make
+  161  make
+  162  make
+  163  make
+  164  make
+  165  make
+  166  make
+  167  make
+  168  git stash
+  169  git pull
+  170  make
+  171  make
+  172  git add .
+  173  git commit -m "ls working without permissions"
+  174  git pusj
+  175  git push
+  176  git status
+  177  clear
+  178  git status
+  179  git pull
+  180  make
+  181  git commit -a -m "ls working without permissions"
+  182  git push
+  183  make
+  184  make
+  185  make
+  186  make
+  187  make
+  188  make
+  189  make
+  190  make
+  191  make
+  192  make
+  193  make
+  194  make
+  195  make
+  196  clear
+  197  make
+  198  mae
+  199  make
+  200  exit
+  201  make
+  202  make
+  203  make
+  204  make
+  205  amke
+  206  make
+  207  make
+  208  make
+  209  make
+  210  make
+  211  make
+  212  ls
+  213  make
+  214  make
+  215  make
+  216  make
+  217  make
+  218  make
+  219  make
+  220  make
+  221  make
+  222  make
+  223  make
+  224  make
+  225  make
+  226  ls -l
+  227  make
+  228  ls
+  229  make
+  230  ls
+  231  make
+  232  exit
+  233  make
+  234  ls
+  235  rm -rf ashell.out.dSYM
+  236  ls
+  237  make clean
+  238  ls
+  239  rm a.out
+  240  ls
+  241  git add .
+  242  git add .
+  243  clear
+  244  git add .
+  245  git commit -a -m "ls now works 100%"
+  246  git push
+  247  make
+  248  make
+  249  make
+  250  make
+  251  ssh stpeters@pc3.cs.ucdavis.edu
+  252  make clean
+  253  ls
+  254  rm -rf *.out
+  255  rm -rf ashell.out.dSYM
+  256  ls
+  257  git add .
+  258  git commit -m "started it but have to do other work now. Feel free to disregard this if you want"
+  259  git push
+  260  ls
+  261  git pull
+  262  git pull
+  263  ls
+  264  make
+  265  g++ kshell.cpp 
+  266  ./a.out
+  267  make
+  268  make
+  269  make
+  270  make
+  271  make
+  272  make
+  273  ls
+  274  rm *.out
+  275  rm -rf ashell.out.dSYM/
+  276  ls
+  277  git add .
+  278  git commit -m "started work on cd and added test directory and file"
+  279  git push
+  280  cd home
+  281  cd HOME
+  282  cd $HOME$
+  283  cd ~
+  284  ls
+  285  cd Documents/
+  286  ls
+  287  cd School\ Work/
+  288  ls
+  289  cd S15
+  290  ls
+  291  cd ECS150
+  292  ls
+  293  cd ECS150Project1/
+  294  ls
+  295  make
+  296  make
+  297  make
+  298  cd Documents/School\ Work/S15/ECS189G/
+  299  ls
+  300  git clone https://github.com/TovrikTheThird/ECS189GHomework1.git
+  301  ls
+  302  git add .
+  303  cd ECS189GHomework1/
+  304  ls
+  305  git add .
+  306  git commit -m "initial commit"
+  307  git push
+  308  ls
+  309  cd ..
+  310  ls
+  311  cd ..
+  312  ls
+  313  cd ECS150/
+  314  ls
+  315  cd ECS150Project1/
+  316  ls
+  317  git pull
+  318  make
+  319  make
+  320  clear
+  321  make
+  322  clear
+  323  make
+  324  make
+  325  make
+  326  make
+  327  make
+  328  make
+  329  make
+  330  clear
+  331  make
+  332  make
+  333  make
+  334  make
+  335  make
+  336  make
+  337  clear
+  338  make
+  339  make
+  340  make
+  341  make
+  342  clear
+  343  make
+  344  make
+  345  make
+  346  make
+  347  make
+  348  make
+  349  make
+  350  make
+  351  make
+  352  make
+  353  make
+  354  clear
+  355  make
+  356  make
+  357  make
+  358  ls
+  359  make
+  360  make
+  361  make
+  362  make
+  363  clear
+  364  make
+  365  make
+  366  make
+  367  make
+  368  git add .
+  369  ls
+  370  rm -rf *.out
+  371  ls
+  372  rm ashell.out.dSYM/
+  373  rm -rf ashell.out.dSYM/
+  374  ls
+  375  git add .
+  376  git commit -m "took a stab at it but have to go. doesn't work"
+  377  git push
+  378  git pull
+  379  make
+  380  make
+  381  make
+  382  make
+  383  make
+  384  make
+  385  make
+  386  make
+  387  make
+  388  ls
+  389  rm *.out
+  390  rm -rf ashell.out.dSYM/
+  391  ls
+  392  git commit -a -m "fixed ls"
+  393  git push
+  394  make
+  395  make
+  396  clear
+  397  make
+  398  make
+  399  ls
+  400  mkdir test
+  401  ls
+  402  cd test
+  403  touch testfile
+  404  ls
+  405  cd ..
+  406  ls
+  407  make
+  408  ls
+  409  make
+  410  ls
+  411  ssh stpeters@pc3.cs.ucdavis.edu
+  412  ps
+  413  .ashell.out
+  414  make
+  415  make
+  416  make
+  417  clear
+  418  male
+  419  make
+  420  make
+  421  make
+  422  wc
+  423  cp ~/../cjnitta/ecs150/ashell make
+  424  exit
+  425  make
+  426  make
+  427  make
+  428  make
+  429  ls
+  430  make
+  431  make
+  432  make
+  433  make
+  434  make
+  435  make
+  436  make
+  437  sftp stpeters@pc3.cs.ucdavis.edu
+  438  ls
+  439  ./ashell
+  440  cd ~
+  441  ls
+  442  cd Documents/School\ Work/S15/ECS150/
+  443  ls
+  444  cd ECS150Project1/
+  445  ls
+  446  make
+  447  make
+  448  make
+  449  ls
+  450  rm ashell.out
+  451  rm -rf ashell.out.dSYM/
+  452  ls
+  453  git add .
+  454  git commit -m "cd works now I think"
+  455  git push
+  456  ls ..
+  457  cd ECS
+  458  ls
+  459  make
+  460  make
+  461  echo $HOME$
+  462  cd ..
+  463  cd ECS150Project1/
+  464  ls
+  465  ls -l
+  466  ls
+  467  cd ../../../..
+  468  ls
+  469  cd ..
+  470  ls
+  471  cd //
+  472  cd ..
+  473  ls
+  474  cd ..
+  475  ls
+  476  ls
+  477  cd ..
+  478  cd ..
+  479  cd ..
+  480  cd ..
+  481  cd ..
+  482  cd ..
+  483  cd ..
+  484  cd ..
+  485  ls
+  486  cd Users
+  487  ls
+  488  cd stefan/
+  489  ls
+  490  ls
+  491  cd Users
+  492  ls
+  493  cd stefan
+  494  ls
+  495  cd Documents/School\ Work/S15/ECS150/ECS150Project1/
+  496  ls
+  497  cd test
+  498  ls
+  499  pico testfile
+  500  exit
+  501  cd ..
+  502  make
+  503  ls
+  504  cd test
+  505  history > testfile
