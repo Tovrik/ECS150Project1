@@ -26,6 +26,7 @@ char upArrow  = 0x41;
 char downArrow= 0x42;
 
 bool exitStatus = 1;
+bool isAmpersand = 0;
 int historyLocation = 0;
 int myindex = 0;
 
@@ -339,11 +340,15 @@ void redirectOut() {
 // handles the forking/piping/duping of commands
 void checkCommandType() {
 	string temp(command);
+	if(!(temp.find("&") == string::npos)) {
+		isAmpersand = 1;
+	}
 	if (!strcmp(argVector[0], "cd") || !strcmp(argVector[0], "exit"))
 	{
 		execute(temp);
 	}
 	// no redirection requires no dup2() or pipe()
+
 	else if (temp.find("|") == string::npos) {
 		// http://timmurphy.org/2014/04/26/using-fork-in-cc-a-minimum-working-example/
 		pid_t pid = fork();
@@ -370,8 +375,10 @@ void checkCommandType() {
 			// at the end we dont need to wait b/c it's running in bg.
 			// if (strcmp(argVector.back(), "&"))
 			// {
+			if(!isAmpersand) {
+				isAmpersand = 0;
 				wait(NULL);
-			// }
+			}
 			return;
 		}
 	}
