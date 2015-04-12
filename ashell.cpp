@@ -138,7 +138,13 @@ void writePrompt() {
 
 
 void cd() {
-	// int ret = chdir(com)
+	if(delimitedCommand.size() > 1) {
+		int ret = chdir(delimitedCommand[1]);
+		if(ret != -1) {
+			getCurrentDirectory();
+			delimit();
+		}
+	}
 }
 
 // The ls command you will be doing internally needs to do the following:
@@ -151,6 +157,7 @@ void cd() {
 void ls() {
 	struct dirent **entries;
 	struct stat permissions;
+	//returns -1 if error, otherwise populates entries with strings of file names and returns number of files
 	int status = scandir(currentDirectory, &entries, NULL, NULL);
 	if(status != -1) {
 		for(int i = 0; i < status; i++){
@@ -235,7 +242,7 @@ void execute(string temp) {
 	if(temp == "exit\n") exitStatus = 0;
 	else if(temp == "pwd\n") pwd();
 	else if(temp == "ls\n") ls();
-	// else if(temp == "cd\n") cd();
+	else if(temp == "cd\n") cd();
 	else if(temp == "history\n") history();
 	else {
 		// have to convert vector to array to be able to pass into execvp. instead of copying
