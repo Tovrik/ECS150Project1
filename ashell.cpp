@@ -108,7 +108,7 @@ void delimitCommand(){
 	// for (int i = 0; i < delimitedCommand.size(); ++i)
 	// {
 	// 	write(1, delimitedCommand[i], strlen(delimitedCommand[i]));
-	// 	write(1, "\n", 1);	
+	// 	write(1, "\n", 1);
 	// }
 }
 
@@ -141,11 +141,17 @@ void writePrompt() {
 // cd
 // It will change the directory to the HOME directory. You definitely can use chdir().
 void cd() {
-	// int ret = chdir(com)
+	if(delimitedCommand.size() > 1) {
+		int ret = chdir(delimitedCommand[1]);
+		if(ret != -1) {
+			getCurrentDirectory();
+			delimit();
+		}
+	}
 }
 
 // The ls command you will be doing internally needs to do the following:
-// 1. open the directory specified (if none specified open up ./) use the opendir from dirent.h 
+// 1. open the directory specified (if none specified open up ./) use the opendir from dirent.h
 // 2. for each entry in the directory:
 //   2.1 read in the entry using readdir (actually readdir will return NULL if at the end so might be while loop)
 //   2.2 get the permissions of the entry using the ->d_name and a call to stat (see the stat system call also don't forget to concatenate the directory name before calling stat)
@@ -154,6 +160,7 @@ void cd() {
 void ls() {
 	struct dirent **entries;
 	struct stat permissions;
+	//returns -1 if error, otherwise populates entries with strings of file names and returns number of files
 	int status = scandir(currentDirectory, &entries, NULL, NULL);
 	if(status != -1) {
 		for(int i = 0; i < status; i++){
@@ -185,13 +192,12 @@ void ls() {
 			if((tmp & S_IXOTH) == S_IXOTH) perms += "x ";
 			else perms += "- ";
 
-
 			write(1, perms.c_str(), 11);
-			write(1, browsedFile.c_str(), 50);
+			write(1, browsedFile.c_str(), browsedFile.length());
 			write(1, "\n", 1);
 			free(entries[i]);
 		}
-
+		free(entries);
 	}
 }
 
@@ -239,7 +245,7 @@ void execute(string temp) {
 	if(temp == "exit\n") exitStatus = 0;
 	else if(temp == "pwd\n") pwd();
 	else if(temp == "ls\n") ls();
-	// else if(temp == "cd\n") cd();
+	else if(temp == "cd\n") cd();
 	else if(temp == "history\n") history();
 	else {
 		// have to convert vector to array to be able to pass into execvp. instead of copying 
