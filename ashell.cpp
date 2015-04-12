@@ -139,7 +139,16 @@ void writePrompt() {
 
 void cd() {
 	if(delimitedCommand.size() > 1) {
+		// string tmp(delimitedCommand[1]);
+		// write(1, delimitedCommand[1], tmp.length());
 		int ret = chdir(delimitedCommand[1]);
+		if(ret != -1) {
+			getCurrentDirectory();
+			delimit();
+		}
+	}
+	else {
+		int ret = chdir(getenv("HOME"));
 		if(ret != -1) {
 			getCurrentDirectory();
 			delimit();
@@ -158,7 +167,13 @@ void ls() {
 	struct dirent **entries;
 	struct stat permissions;
 	//returns -1 if error, otherwise populates entries with strings of file names and returns number of files
-	int status = scandir(currentDirectory, &entries, NULL, NULL);
+	int status;
+	if(delimitedCommand.size() == 1) {
+		status = scandir(currentDirectory, &entries, NULL, NULL);
+	}
+	else {
+		status = scandir(delimitedCommand[1], &entries, NULL, NULL);
+	}
 	if(status != -1) {
 		for(int i = 0; i < status; i++){
 			string currDir(currentDirectory);
@@ -239,10 +254,11 @@ void clearLine(int commandLength) {
 }
 
 void execute(string temp) {
+	string tmpString(delimitedCommand[0]);
 	if(temp == "exit\n") exitStatus = 0;
 	else if(temp == "pwd\n") pwd();
-	else if(temp == "ls\n") ls();
-	else if(temp == "cd\n") cd();
+	else if(tmpString == "ls") ls();
+	else if(tmpString == "cd") cd();
 	else if(temp == "history\n") history();
 	else {
 		// have to convert vector to array to be able to pass into execvp. instead of copying
