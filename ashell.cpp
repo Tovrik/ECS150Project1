@@ -419,7 +419,7 @@ void checkCommandType() {
 				}
 				if (previnpipe)
 				{
-					dup2(previnpipe, 0);	
+					dup2(previnpipe, 0);
 				}
 				if (pipefd[1])
 				{
@@ -531,10 +531,16 @@ void getCommand(){
 	do {
 		read(0, currChar, 1);
 
-		if((currChar[0] == deleted1 || currChar[0] == deleted2) && myindex > 0) {
-			write(1, "\b \b", 3);
-			command[myindex] = '\0';
-			myindex--;
+		if((currChar[0] == deleted1 || currChar[0] == deleted2)) {
+
+			if(myindex > 0) {
+				write(1, "\b \b", 3);
+				command[myindex] = '\0';
+				myindex--;
+			}
+			else{
+				write(1, "\a", 1);
+			}
 		}
 		else if(isprint(currChar[0]) || currChar[0] == '\n') {
 			command[myindex] = currChar[0];
