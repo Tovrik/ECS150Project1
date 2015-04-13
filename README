@@ -1,0 +1,20 @@
+## Partners
+Stefan Peterson:
+- 998556530
+- stpeterson@ucdavis.edu
+
+Shai Bruhis:
+- 997440977
+- sbruhis@ucdavis.edu
+
+## Instructions
+To compile type "make" which runs our Makefile and both compiles and executes the program
+
+## Resources
+http://linux.die.net:
+- for documentation on system level unix calls
+http://stackoverflow.com/questions/10323060/printing-file-permissions-like-ls-l-using-stat2-in-c:
+- for formatting permissions for ls implementation
+http://timmurphy.org/2014/04/26/using-fork-in-cc-a-minimum-working-example:
+- for implementing fork and getting parent/child pid
+
