@@ -145,6 +145,7 @@ void makeArgVector() {
         if (string(delimitedCommand[i]).find("<") == string::npos && string(delimitedCommand[i]).find(">") == string::npos) {
             argVector.push_back(delimitedCommand[i]);
         }
+        else {i++;}
     }
     argVector.push_back(NULL);
 }
@@ -309,7 +310,7 @@ void redirectIn() {
             path_name = delimitedCommand[i+1];
         }
     }
-    int fd = open(path_name, O_RDONLY, S_IRWXU | S_IRWXG | S_IRWXO);
+    int fd = open(path_name, O_RDONLY);
     dup2(fd, 0);
     close(fd);
 }
@@ -323,7 +324,7 @@ void redirectOut() {
             path_name = delimitedCommand[i+1];
         }
     }
-    int fd = open(path_name, O_WRONLY | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
+    int fd = open(path_name, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
     dup2(fd, 1);
     close(fd);
 }
@@ -363,6 +364,9 @@ void checkCommandType() {
     bool piping = false;
     bool send_piped_content = false;
     if(argVector[0] == NULL) return;
+    if(!(temp.find("&") == string::npos)) {
+        isAmpersand = 1;
+    }
     if (!strcmp(argVector[0], "cd") || !strcmp(argVector[0], "exit"))
     {
         execute(temp);
@@ -414,7 +418,10 @@ void checkCommandType() {
                 if(piping){
                     close(pipefd[1]);
                 }
-                wait(&pid);
+                if(!isAmpersand) {
+                    isAmpersand = 0;
+                    wait(&pid);
+                }
                 if(previnpipe != 0) {
                     close(previnpipe);
                 }
