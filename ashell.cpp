@@ -34,7 +34,7 @@ char command[BUFFER_SIZE];
 //broken down command by spaces
 vector<char*> delimitedCommand;
 
-vector<string> delimtedByPipeCommand;
+vector<char*> delimtedByPipeCommand;
 //arg array
 vector<char*> argVector;
 //char buffer
@@ -82,7 +82,7 @@ void delimit(){
 	}
 }
 
-void delimitCommand(){
+void delimitCommand(char* command){
 	// for(int k = 0; k < delimitedCommand.size(); k++) {
 	// 	memset(delimitedCommand.at(k), '\0', BUFFER_SIZE);
 	// }
@@ -114,8 +114,16 @@ void delimitByPipe(){
 
 	for (int i = 0; i < strlen(command); i++) {
 		if(command[i] == '|' || command[i] == '\n') {
-			delimtedByPipeCommand.push_back(tmp);
+			char *tempChar = new char [BUFFER_SIZE];
+			// if (command[i] == '\n') tmp += command[i];
+			int j;
+			for (j = 0; j < tmp.length(); j++) {
+				tempChar[j] = tmp[j];
+			}
+			tempChar[j] = '\n';
+			delimtedByPipeCommand.push_back(tempChar);
 			tmp = "";
+			if (command[i] == '\n') break;
 		}
 		else if(isprint(command[i])) {
 			tmp += command[i];
@@ -123,6 +131,18 @@ void delimitByPipe(){
 	}
 }
 
+// arg array needed for passing into execvp()
+void makeArgVector() {
+	for (int i = 0; i < delimitedCommand.size(); ++i)
+	{
+		// add to arg Array if not "<" or ">" or "|"
+		if (string(delimitedCommand[i]).find("<") == string::npos && string(delimitedCommand[i]).find(">") == string::npos) {
+			argVector.push_back(delimitedCommand[i]);
+		}
+	}
+	// command list has to be terminated by a NULL
+	argVector.push_back(NULL);
+}
 
 void writePrompt() {
 	//add /home/stpeters... stack <= 2
@@ -339,62 +359,91 @@ void redirectOut() {
 // handles the forking/piping/duping of commands
 void checkCommandType() {
 	string temp(command);
+	vector<int> pids;
 	if (!strcmp(argVector[0], "cd") || !strcmp(argVector[0], "exit"))
 	{
 		execute(temp);
 	}
-	// no redirection requires no dup2() or pipe()
-	else if (temp.find("|") == string::npos) {
-		// http://timmurphy.org/2014/04/26/using-fork-in-cc-a-minimum-working-example/
-		pid_t pid = fork();
-		// child process
-		if (pid == 0) {
-			// reading file in
-			if(temp.find("<") != string::npos) {
-				redirectIn();
+	else {
+		delimitedCommand.clear();
+		for (int i = 0; i < delimtedByPipeCommand.size(); ++i)
+		{
+			string temp2(delimtedByPipeCommand[i]);
+			write(1, temp2.c_str(), temp2.length());
+			delimitCommand(delimtedByPipeCommand[i]);
+			for (int i = 0; i < delimitedCommand.size(); ++i)
+			{
+				write(1, delimitedCommand[i], strlen(delimitedCommand[i]));
+				write(1, "\n", 1);
 			}
-			// outputting to file
-			if(temp.find(">") != string::npos) {
-				redirectOut();
-			}
-			if(temp.find("|") != string::npos) {
+			makeArgVector();
 
+			int previnpipe = 0;
+			int outpipe = 0;
+			int pipefd[2];
+			if (delimtedByPipeCommand.size() > 1 && i < delimtedByPipeCommand.size() - 1)
+			{
+				pipe(pipefd);
 			}
-			execute(temp);
-			// exit 0 from child process
-			exit(0);
+
+			// http://timmurphy.org/2014/04/26/using-fork-in-cc-a-minimum-working-example/
+			pid_t pid = fork();
+			// child process
+			if (pid == 0) {
+				// reading file in
+				if(temp2.find("<") != string::npos) {
+					redirectIn();
+				}
+				// outputting to file
+				if(temp2.find(">") != string::npos) {
+					redirectOut();
+				}
+				if (previnpipe)
+				{
+					dup2(previnpipe, 0);	
+				}
+				if (pipefd[1])
+				{
+					dup2(pipefd[1], 1);
+				}
+				execute(temp2);
+				// exit 0 from child process
+				exit(0);
+			}
+			// parent process
+			if (pid > 0) {
+				// wait for children to complete then return. if the command contains a "&"
+				// at the end we dont need to wait b/c it's running in bg.
+				// if (strcmp(argVector.back(), "&"))
+				// {
+					wait(NULL);
+					return;
+					pids.push_back(pid);
+				// }
+			}
+			if (previnpipe)
+			{
+				close(previnpipe);
+			}
+			if (pipefd[1])
+			{
+				close(pipefd[1]);
+			}
+			previnpipe = pipefd[0];
 		}
-		// parent process
-		else if (pid > 0) {
-			// wait for children to complete then return. if the command contains a "&"
-			// at the end we dont need to wait b/c it's running in bg.
-			// if (strcmp(argVector.back(), "&"))
-			// {
-				wait(NULL);
-			// }
-			return;
+		for (int i = 0; i < pids.size(); ++i)
+		{
+			wait(&pids[i]);
 		}
 	}
-}
-
-// arg array needed for passing into execvp()
-void makeArgVector() {
-	for (int i = 0; i < delimitedCommand.size(); ++i)
-	{
-		// add to arg Array if not "<" or ">" or "|"
-		if (string(delimitedCommand[i]).find("|") == string::npos && string(delimitedCommand[i]).find("<") == string::npos && string(delimitedCommand[i]).find(">") == string::npos) {
-			argVector.push_back(delimitedCommand[i]);
-		}
-	}
-	// command list has to be terminated by a NULL
-	argVector.push_back(NULL);
 }
 
 // need to handle case where piping/redirection doesnt have spaces "a.txt<b.txt"
 void checkCommandArgs () {
 	string temp(command);
 	addToHistory(command);
-	delimitCommand();
+	delimitByPipe();
+	delimitCommand(delimtedByPipeCommand[0]);
 	makeArgVector();
 	checkCommandType();
 }
