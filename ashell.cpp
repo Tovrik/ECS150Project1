@@ -91,7 +91,11 @@ void delimitCommand(char* command){
 	string tmp = "";
 	// int count = 0;
 	for(int i = 0; i < strlen(command); i++) {
-		if(command[i] == ' ' || command[i] == '\n'){
+		if((command[i] == ' ' || command[i] == '\n') && tmp != ""){
+			if (command[i] == ' ' && i == strlen(command)-1) {
+				write(1, "SPACE", 5);
+				break;
+			}
 			char *tempChar = new char [BUFFER_SIZE];
 			// if (command[i] == '\n') tmp += command[i];
 			for (int j = 0; j < tmp.length(); j++) {
@@ -136,12 +140,11 @@ void delimitByPipe(){
 void makeArgVector() {
 	for (int i = 0; i < delimitedCommand.size(); ++i)
 	{
-		// add to arg Array if not "<" or ">" or "|"
+		// add to arg Array if not "<" or ">"
 		if (string(delimitedCommand[i]).find("<") == string::npos && string(delimitedCommand[i]).find(">") == string::npos) {
 			argVector.push_back(delimitedCommand[i]);
 		}
 	}
-	// command list has to be terminated by a NULL
 	argVector.push_back(NULL);
 }
 
@@ -299,6 +302,11 @@ void execute(string temp) {
 		// have to convert vector to array to be able to pass into execvp. instead of copying
 		// vector I just created a pointer to a char * and set it to front of vector.
 		char** argArray = &argVector[0];
+		// for (int i = 0; i < argVector.size(); ++i)
+		// {
+		// 	write(1, argArray[i], strlen(argArray[i]));
+		// 	write(1, "\n", 1);
+		// }
 		execvp(argArray[0], argArray);
 	}
 }
@@ -369,21 +377,31 @@ void checkCommandType() {
 		delimitedCommand.clear();
 		for (int i = 0; i < delimtedByPipeCommand.size(); ++i)
 		{
+			write(1, "for\n", 4);
 			string temp2(delimtedByPipeCommand[i]);
-			write(1, temp2.c_str(), temp2.length());
+			// write(1, temp2.c_str(), temp2.length());
+			// write(1, "\n", 1);
 			delimitCommand(delimtedByPipeCommand[i]);
-			for (int i = 0; i < delimitedCommand.size(); ++i)
-			{
-				write(1, delimitedCommand[i], strlen(delimitedCommand[i]));
-				write(1, "\n", 1);
-			}
+			// for (int i = 0; i < delimitedCommand.size(); ++i)
+			// {
+			// 	write(1, delimitedCommand[i], strlen(delimitedCommand[i]));
+			// 	write(1, "\n", 1);
+			// }
 			makeArgVector();
+			// for (int i = 0; i < argVector.size(); ++i)
+			// {
+			// 	write(1, argVector[i], strlen(argVector[i]));
+			// 	write(1, "\n", 1);
+			// }
+
+
 
 			int previnpipe = 0;
 			int outpipe = 0;
 			int pipefd[2];
 			if (delimtedByPipeCommand.size() > 1 && i < delimtedByPipeCommand.size() - 1)
 			{
+				write(1, "pipe", 4);
 				pipe(pipefd);
 			}
 
@@ -419,7 +437,7 @@ void checkCommandType() {
 				// {
 					wait(NULL);
 					return;
-					pids.push_back(pid);
+					// pids.push_back(pid);
 				// }
 			}
 			if (previnpipe)
@@ -432,10 +450,10 @@ void checkCommandType() {
 			}
 			previnpipe = pipefd[0];
 		}
-		for (int i = 0; i < pids.size(); ++i)
-		{
-			wait(&pids[i]);
-		}
+		// for (int i = 0; i < pids.size(); ++i)
+		// {
+		// 	wait(&pids[i]);
+		// }
 	}
 }
 
