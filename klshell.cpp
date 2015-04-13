@@ -1,21 +1,25 @@
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string>
-#include <string.h>
-#include <fcntl.h>
-#include <termios.h>
-#include <dirent.h>
 #include <ctype.h>
+#include <dirent.h>
 #include <errno.h>
-#include <stdint.h>
-#include <vector>
-#include <utility>
+#include <fcntl.h>
 #include <pwd.h>
 #include <signal.h>
-#include <sys/types.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdint.h>
+#include <termios.h>
+#include <unistd.h>
+
+#include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/wait.h>
+
+#include <algorithm>
+#include <string>
+#include <utility>
+#include <vector>
 #include <iostream>
 
 using namespace std;
@@ -53,7 +57,37 @@ static inline void string_out(string output_string, int fd = STDOUT_FILENO)
 }
 
 
-struct KShell
+static inline void invalid_arguments(string command_name)
+{
+    string error_string = command_name + ": invalid arguments\n";
+    string_out(error_string, STDERR_FILENO);
+}
+
+
+struct Window
+{
+    struct winsize w;
+
+    void updateWinsize()
+    {
+        ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+    }
+
+    int getWindowColumns()
+    {
+        updateWinsize();
+        return w.ws_col;
+    }
+
+    int getWindowLines()
+    {
+        updateWinsize();
+        return w.ws_row;
+    }
+} w;
+
+
+struct KLShell
 {
     pid_t pid;
     pid_t child_pid;
@@ -76,7 +110,7 @@ struct KShell
     string backsearch_prefix;
     string backsearch_prefix_fail;
 
-    KShell()
+    KLShell()
     {
         // default options
         pid = 0;
@@ -126,10 +160,73 @@ static void clearCurrentAndWriteNewBuffer(string old_buf,
 }
 
 
+/* columnate input as wide as terminal */
+static void printWideColumns(vector<string> input)
+{
+    for (int i = 0; i < input.size(); i++) {
+        string_out(input[i]);
+        string_out("\n");
+    }
+    return;
+
+    const string column_divider = "  ";
+    int columns_available = w.getWindowColumns();
+
+    int max_columns_needed = input.size();
+    vector<int> column_indices;
+
+    for (int attempt_col_count = max_columns_needed;
+            attempt_col_count > 1;
+            attempt_col_count--) {
+        /**
+         * the only available column configurations are those where:
+         * [item count] % ([item count] / [columns]) is 0 or 1
+         *
+         *
+         * like:
+         * 1 2 3 4 5
+         * 6 7 8 9
+         * A B C D
+         * 13 % (13 / 5) = 1
+         *
+         * 1 2 3
+         * 4 5 6
+         * 6 % (6 / 3) = 0
+         *
+         * 1 2 3 4 5
+         * 6 7 8 9 A
+         * B C D E
+         * 14 % (14 / 5) = 1
+         *
+         * 1 2 3 4 5 6
+         * 7 8 9 A B C
+         * D E F G H
+         * 17 % (17 / 6) = 1
+         *
+         * 1 2 3 4 5 6 7 8
+         * 9 A B C D E F G
+         * H I J K L M N O
+         * 24 % (24 / 8) = 0
+         *
+         * 1 2 3 4 5 6 7 8
+         * 9 A B C D E F G
+         * H I J K L M N
+         * 23 % (23 / 8) = 1
+         *
+         * we can filter all the non 0s and 1s out, then just check the
+         * total size against the window width (column count)
+         */
+        int check = input.size() % (input.size() / attempt_col_count);
+        if (check != 0 && check != 1) {
+            continue;
+        }
+    }
+}
+
+
 /* cycle up and down through history */
 static void scrollUpDown(bool scrollUp = true, bool allowScrollWrap = false)
 {
-
     if (sh.history_index == sh.history.size()) {
         sh.history.push_back(sh.buffer);
     } else if (sh.history_index == sh.history.size() - 1) {
@@ -160,7 +257,8 @@ static void scrollUpDown(bool scrollUp = true, bool allowScrollWrap = false)
     }
 
     clearCurrentAndWriteNewBuffer(sh.buffer,
-        sh.history[sh.history_index], sh.line_prefix);
+                                  sh.history[sh.history_index],
+                                  sh.line_prefix);
     sh.buffer = sh.history[sh.history_index];
 }
 
@@ -177,9 +275,13 @@ static void scrollLeftRight(bool scrollLeft = true)
             ring_bell();
             return;
         }
-        sh.buffer_right.insert(0, 1, sh.buffer_left[sh.buffer_left.size() - 1]);
+        sh.buffer_right.insert(0, 1,
+            sh.buffer_left[sh.buffer_left.size() - 1]);
         sh.buffer_left.erase(sh.buffer_left.size() - 1, 1);
-        clearCurrentAndWriteNewBuffer(sh.buffer, sh.buffer, sh.line_prefix, sh.buffer_right.size());
+        clearCurrentAndWriteNewBuffer(sh.buffer,
+                                      sh.buffer,
+                                      sh.line_prefix,
+                                      sh.buffer_right.size());
     } else {
         if (cursor_index == sh.buffer.size()) {
             ring_bell();
@@ -187,7 +289,10 @@ static void scrollLeftRight(bool scrollLeft = true)
         }
         sh.buffer_left.push_back(sh.buffer_right[0]);
         sh.buffer_right.erase(0, 1);
-        clearCurrentAndWriteNewBuffer(sh.buffer, sh.buffer, sh.line_prefix, sh.buffer_right.size());
+        clearCurrentAndWriteNewBuffer(sh.buffer,
+                                      sh.buffer,
+                                      sh.line_prefix,
+                                      sh.buffer_right.size());
     }
 }
 
@@ -307,11 +412,14 @@ static vector<cmdArgs> breakCommand(vector<string> input)
  * iterate through args in cmdArgs for a redirect
  * if so, pop it out of args and put it into redirect_out with a specific format
  *
- * format: < type: "<" ">" ">>", file descriptor: "STDIN_FILENO" "STDOUT_FILENO" "STDERR_FILENO" >, filename
+ * format: type: "<" ">" ">>"
+ *         file descriptor: "STDIN_FILENO" "STDOUT_FILENO" "STDERR_FILENO"
+ *         filename
  *     or "error" in the first slot if there's a problem parsing
  *
  */
-static void detectRedirect(vector< vector<string> > *redirects_out, cmdArgs *input)
+static void detectRedirect(vector< vector<string> > *redirects_out,
+                           cmdArgs *input)
 {
     vector<string> list;
     bool have_stdin = false;
@@ -324,7 +432,8 @@ static void detectRedirect(vector< vector<string> > *redirects_out, cmdArgs *inp
         if (in_pos != string::npos) {
             if (in_pos == 0) {
                 if (!have_stdin) {
-                    string filename = input->second[i].substr(1, input->second[i].size());
+                    string filename = input->second[i].substr(1,
+                        input->second[i].size());
                     if (filename == "") {
                         if (i < (int)input->second.size() - 1) {
                             filename = input->second[i + 1];
@@ -358,17 +467,21 @@ static void detectRedirect(vector< vector<string> > *redirects_out, cmdArgs *inp
                     append = true;
                     out_pos++;
                 }
-                string filename = input->second[i].substr(out_pos + 1, input->second[i].size());
-                if (filename == "" && (out_pos == 0 || out_pos == 1 && append)) {
+                string filename = input->second[i].substr(out_pos + 1,
+                    input->second[i].size());
+                if (filename == "" &&
+                        (out_pos == 0 || out_pos == 1 && append)) {
                     if (i < (int)input->second.size() - 1) {
                         filename = input->second[i + 1];
                         input->second.erase(input->second.begin() + i + 1);
                     }
                 }
                 if (filename != "") {
-                    if (out_pos == 0 || out_pos == 1 && append || input->second[i][0] == '1') {
+                    if (out_pos == 0 || out_pos == 1 && append ||
+                            input->second[i][0] == '1') {
                         if (!have_stdout) {
-                            if (input->second[i].find(">", out_pos + 1) == string::npos) {
+                            if (input->second[i].find(">", out_pos + 1) ==
+                                    string::npos) {
                                 have_stdout = true;
                                 list.clear();
                                 if (!append) {
@@ -385,7 +498,8 @@ static void detectRedirect(vector< vector<string> > *redirects_out, cmdArgs *inp
                         }
                     } else if (input->second[i][0] == '2'){
                         if (!have_stderr) {
-                            if (input->second[i].find(">", out_pos + 1) == string::npos) {
+                            if (input->second[i].find(">", out_pos + 1) ==
+                                    string::npos) {
                                 have_stderr = true;
                                 list.clear();
                                 if (!append) {
@@ -416,16 +530,51 @@ static void detectRedirect(vector< vector<string> > *redirects_out, cmdArgs *inp
 }
 
 
+/* returns string of single alphabetical chars representing options */
+static string optionParser(vector<string> *input)
+{
+    string result = "";
+    vector<string> only_options;
+    for (int i = 0; i < input->size(); ) {
+        if (input->at(i).find("--") == 0) {
+            // LONG OPTION NOT SUPPORTED
+            result = "ERROR";
+            return result;
+        } else if (input->at(i).find("-") == 0) {
+            only_options.push_back(input->at(i));
+            input->erase(input->begin() + i);
+            continue;
+        }
+        i++;
+    }
+    for (int i = 0; i < only_options.size(); i++) {
+        result += only_options[i].substr(1, only_options[i].size());
+    }
+    sort(result.begin(), result.end());
+    if (result.size() == 1 || result.empty()) {
+        return result;
+    }
+    for (int i = 0; i < result.size() - 1; i++) {
+        if (result[i] == result[i + 1]) {
+            result = "ERROR";
+            break;
+        }
+    }
+    return result;
+}
+
+
 /* follow are the special shell built-ins */
 static int command_history(cmdArgs current_command)
 {
-    if (current_command.second.size() > 0) {
-        string error_string = current_command.first + ": invalid arguments\n";
-        string_out(error_string, STDERR_FILENO);
+    string options = optionParser(&current_command.second);
+    if (options == "ERROR" || !options.empty()) {
+        invalid_arguments(current_command.first);
         return 1;
     }
 
-    string output_string = "History of past commands, max " + intToString(sh.history_limit) + ": \n";
+    string output_string = "History of past commands, max " +
+        intToString(sh.history_limit) + ": \n";
     string_out(output_string);
     for (size_t i = 0; i < sh.history.size(); i++) {
         output_string = intToString(i) + ": " + sh.history[i] + "\n";
@@ -437,9 +586,9 @@ static int command_history(cmdArgs current_command)
 
 static int command_pwd(cmdArgs current_command)
 {
-    if (current_command.second.size() > 0) {
-        string error_string = current_command.first + ": invalid arguments\n";
-        string_out(error_string, STDERR_FILENO);
+    string options = optionParser(&current_command.second);
+    if (options == "ERROR" || !options.empty()) {
+        invalid_arguments(current_command.first);
         return 1;
     }
     string output_string = sh.current_dir + "\n";
@@ -471,12 +620,13 @@ static inline string ls_rwx_conv(int value)
 }
 
 
-static inline string ls_get_permissions_string(const char *path, bool printPermissions)
+static inline string ls_get_permissions_string(string path,
+                                               bool printPermissions)
 {
     string output_string = "";
     if (printPermissions) {
         struct stat st;
-        lstat(path, &st);
+        lstat(path.c_str(), &st);
         if (S_ISDIR(st.st_mode)) {
             output_string = "d";
         } else {
@@ -497,16 +647,28 @@ static inline string ls_get_permissions_string(const char *path, bool printPermi
 }
 
 
-static void ls_write_full_string(string path, bool printPermissions)
+static void ls_write_full_string(string path, bool findHidden, bool printList)
 {
+    vector<string> files;
     struct dirent **entries;
     int count = scandir(path.c_str(), &entries, NULL, alphasort);
     if (count != -1) {
         for (size_t i = 0; i < count; i++) {
-            string output_string = ls_get_permissions_string(
-                entries[i]->d_name, printPermissions);
-            string_out(output_string);
+            string path = entries[i]->d_name;
+            if (path.find(".") == 0 && !findHidden) {
+                continue;
+            }
+            if (!printList) {
+                files.push_back(path);
+            } else {
+                string output_string = ls_get_permissions_string(
+                    path, printList);
+                string_out(output_string);
+            }
             free(entries[i]);
+        }
+        if (!printList) {
+            printWideColumns(files);
         }
     } else {
         string error_string = string("ls: ") + strerror(errno) + "\n";
@@ -515,10 +677,31 @@ static void ls_write_full_string(string path, bool printPermissions)
 }
 
 
-static int command_ls(cmdArgs current_command, bool printPermissions = true)
+static int command_ls(cmdArgs current_command)
 {
-    if (current_command.second.size() == 0) {
-        ls_write_full_string(sh.current_dir, printPermissions);
+    bool option_hidden = false; // -l
+    bool option_list = false; // -a
+    string options = optionParser(&current_command.second);
+    if (options == "ERROR") {
+        invalid_arguments(current_command.first);
+        return 1;
+
+    } else {
+        if (options.find("a") != string::npos) {
+            options.erase(options.begin() + options.find("a"));
+            option_hidden = true;
+        }
+        if (options.find("l") != string::npos) {
+            options.erase(options.begin() + options.find("l"));
+            option_list = true;
+        }
+        if (!options.empty()) {
+            invalid_arguments(current_command.first);
+            return 1;
+        }
+    }
+    if (current_command.second.empty()) {
+        ls_write_full_string(sh.current_dir, option_hidden, option_list);
         return 0;
     }
     for (size_t i = 0; i < current_command.second.size(); i++) {
@@ -531,7 +714,7 @@ static int command_ls(cmdArgs current_command, bool printPermissions = true)
             string_out(error_string);
         } else if (S_ISREG(st.st_mode)) {
             string output_string = ls_get_permissions_string(
-                current_command.second[i].c_str(), printPermissions);
+                current_command.second[i], option_list);
             string_out(output_string);
         } else {
             if (current_command.second.size() > 1) {
@@ -540,7 +723,7 @@ static int command_ls(cmdArgs current_command, bool printPermissions = true)
             }
             chdir(current_command.second[i].c_str());
             string path = getcwd(NULL, 0);
-            ls_write_full_string(path, printPermissions);
+            ls_write_full_string(path, option_hidden, option_list);
         }
         if (i != current_command.second.size() - 1) {
             write(STDOUT_FILENO, "\n", 1);
@@ -553,17 +736,30 @@ static int command_ls(cmdArgs current_command, bool printPermissions = true)
 
 static int command_cd(cmdArgs current_command)
 {
-    if (current_command.second.size() > 1) {
-        string error_string = current_command.first + ": invalid arguments\n";
-        string_out(error_string, STDERR_FILENO);
+    string options = optionParser(&current_command.second);
+    if (options == "ERROR" || !options.empty()) {
+        invalid_arguments(current_command.first);
         return 1;
     }
-    int ret = chdir(current_command.second[0].c_str());
+    int ret;
+    if (current_command.second.size() != 0){
+        ret = chdir(current_command.second[0].c_str());
+    } else {
+        uid_t uid = geteuid();
+        struct passwd *pd = getpwuid(uid);
+        string dest = "/home/";
+        if (pd) {
+            dest = pd->pw_dir;
+        }
+        ret = chdir(dest.c_str());
+    }
+
     if (ret != -1) {
         sh.current_dir = getcwd(NULL, 0);
         updatePrefix();
     } else {
-        string error_string = current_command.first + ": " + strerror(errno) + "\n";
+        string error_string = current_command.first + ": " +
+            strerror(errno) + "\n";
         string_out(error_string, STDERR_FILENO);
     }
     return 0;
@@ -573,6 +769,9 @@ static int command_cd(cmdArgs current_command)
 /* close file descriptors that aren't stdin, stdout, or stderr */
 static inline void closeNotSTDFD(int fd)
 {
+    if (fd == 0) {
+        return;
+    }
     if (fd != STDIN_FILENO && fd != STDOUT_FILENO && fd != STDERR_FILENO) {
         close(fd);
     }
@@ -583,7 +782,8 @@ static inline void closeNotSTDFD(int fd)
 static int dupFD(int src, int dest)
 {
     if (src == -1) {
-        string error_string = string("Error opening file: ") + strerror(errno) + "\n";
+        string error_string = string("Error opening file: ") +
+            strerror(errno) + "\n";
         string_out(error_string, STDERR_FILENO);
         return 1;
     }
@@ -613,7 +813,7 @@ static int runCommand(string buffer)
     vector<cmdArgs> commands = breakCommand(input);
     cmdArgs current_command;
     int fd[2];
-    int piped_fd;
+    int piped_fd = 0;
     int redirect_fd_stdin = 0, redirect_fd_stdout = 0, redirect_fd_stderr = 0;
     bool piping = false, send_piped_content = false;
     bool dup_fd_stdin = false, dup_fd_stdout = false, dup_fd_stderr = false;
@@ -643,7 +843,8 @@ static int runCommand(string buffer)
                 if (redirects[i][1] == "STDIN_FILENO") {
                     // redirect stdin
                     if (piping) {
-                        string_out("Ambiguous input redirect.\n", STDERR_FILENO);
+                        string_out("Ambiguous input redirect.\n",
+                            STDERR_FILENO);
                         badRedirect = true;
                         break;
                     }
@@ -655,22 +856,29 @@ static int runCommand(string buffer)
                     }
                     dup_fd_stdin = true;
 
-                } else if (redirects[i][1] == "STDOUT_FILENO" || redirects[i][1] == "STDERR_FILENO") {
+                } else if (redirects[i][1] == "STDOUT_FILENO" ||
+                        redirects[i][1] == "STDERR_FILENO") {
                     // redirect std/stderr
                     if (!commands.empty()) {
-                        string_out("Ambiguous output redirect.\n", STDERR_FILENO);
+                        string_out("Ambiguous output redirect.\n",
+                            STDERR_FILENO);
                         badRedirect = true;
                         break;
                     }
                     if (redirects[i][1] == "STDOUT_FILENO") {
                         filename = redirects[i][2];
                         if (filename.size() == 2 && filename.find("&") == 0) {
-                            redirect_fd_stdin = atoi(filename.substr(1,1).c_str());
+                            redirect_fd_stdin =
+                                atoi(filename.substr(1,1).c_str());
                         } else {
                             if (redirects[i][0] == ">>") {
-                                redirect_fd_stdout = open(filename.c_str(), O_CREAT | O_APPEND | O_WRONLY, S_IRUSR | S_IWUSR);
+                                redirect_fd_stdout = open(filename.c_str(),
+                                    O_CREAT | O_APPEND | O_WRONLY,
+                                    S_IRUSR | S_IWUSR);
                             } else {
-                                redirect_fd_stdout = open(filename.c_str(), O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
+                                redirect_fd_stdout = open(filename.c_str(),
+                                    O_CREAT | O_TRUNC | O_WRONLY,
+                                    S_IRUSR | S_IWUSR);
                             }
                         }
                         dup_fd_stdout = true;
@@ -678,12 +886,17 @@ static int runCommand(string buffer)
                     } else {
                         filename = redirects[i][2];
                         if (filename.size() == 2 && filename.find("&") == 0) {
-                            redirect_fd_stdin = atoi(filename.substr(1,1).c_str());
+                            redirect_fd_stdin =
+                                atoi(filename.substr(1,1).c_str());
                         } else {
                             if (redirects[i][0] == ">>") {
-                                redirect_fd_stderr = open(filename.c_str(), O_CREAT | O_APPEND | O_WRONLY, S_IRUSR | S_IWUSR);
+                                redirect_fd_stderr = open(filename.c_str(),
+                                    O_CREAT | O_APPEND | O_WRONLY,
+                                    S_IRUSR | S_IWUSR);
                             } else {
-                                redirect_fd_stderr = open(filename.c_str(), O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
+                                redirect_fd_stderr = open(filename.c_str(),
+                                    O_CREAT | O_TRUNC | O_WRONLY,
+                                    S_IRUSR | S_IWUSR);
                             }
                         }
                         dup_fd_stderr = true;
@@ -701,7 +914,8 @@ static int runCommand(string buffer)
             // then we pipe
             int ret_p = pipe(fd);
             if (ret_p == -1) {
-                string error_string = string("Broken pipe: ") + strerror(errno) + "\n";
+                string error_string = string("Broken pipe: ") +
+                    strerror(errno) + "\n";
                 string_out(error_string, STDERR_FILENO);
                 break;
             }
@@ -725,7 +939,8 @@ static int runCommand(string buffer)
         int f_pid;
         f_pid = fork();
         if (f_pid == -1) {
-            string error_string = string("Couldn't fork process: ") + strerror(errno) + "\n";
+            string error_string = string("Couldn't fork process: ") +
+                strerror(errno) + "\n";
             string_out(error_string, STDERR_FILENO);
             break;
         } else if (f_pid == 0) {
@@ -734,7 +949,8 @@ static int runCommand(string buffer)
                 closeNotSTDFD(fd[0]);
                 int ret_d = dup2(fd[1], STDOUT_FILENO);
                 if (ret_d != STDOUT_FILENO) {
-                    string error_string = string("Broken pipe: ") + strerror(errno) + "\n";
+                    string error_string = string("Broken pipe: ") +
+                        strerror(errno) + "\n";
                     string_out(error_string, STDERR_FILENO);
                     exit(1);
                 }
@@ -743,13 +959,17 @@ static int runCommand(string buffer)
                 send_piped_content = false;
                 int ret_d = dup2(piped_fd, STDIN_FILENO);
                 if (ret_d != STDIN_FILENO) {
-                    string error_string = string("Broken pipe: ") + strerror(errno) + "\n";
+                    string error_string = string("Broken pipe: ") +
+                        strerror(errno) + "\n";
                     string_out(error_string, STDERR_FILENO);
                     exit(1);
                 }
             }
 
-            // this shouldn't overlap with the previous if statements via logic elsewhere
+            /**
+             * this shouldn't overlap with the previous
+             * if statements via logic elsewhere
+             */
             if (dup_fd_stdin) {
                 if (dupFD(redirect_fd_stdin, STDIN_FILENO) == 1) {
                     exit(1);
@@ -777,7 +997,8 @@ static int runCommand(string buffer)
                 ret = command_ls(current_command);
             } else { // everything else
                 execvp(args[0], &args[0]);
-                string error_string = current_command.first + ": " + strerror(errno) + "\n";
+                string error_string = current_command.first + ": " +
+                    strerror(errno) + "\n";
                 string_out(error_string, STDERR_FILENO);
                 exit(1);
             }
@@ -828,8 +1049,10 @@ void autocomplete()
         if (search == "") {
             string_out("\n");
             cmdArgs empty;
-            command_ls(empty, false);
-            clearCurrentAndWriteNewBuffer(sh.buffer, sh.buffer, sh.line_prefix);
+            command_ls(empty);
+            clearCurrentAndWriteNewBuffer(sh.buffer,
+                                          sh.buffer,
+                                          sh.line_prefix);
             return;
         }
     }
@@ -855,12 +1078,16 @@ void autocomplete()
                 if (cmp_entries[0] == search) {
                     string old = sh.buffer;
                     sh.buffer = sh.buffer + " ";
-                    clearCurrentAndWriteNewBuffer(old, sh.buffer, sh.line_prefix);
+                    clearCurrentAndWriteNewBuffer(old,
+                                                  sh.buffer,
+                                                  sh.line_prefix);
                     return;
                 } else {
                     string old = sh.buffer;
                     sh.buffer = sh.original_auto_buffer_begin + cmp_entries[0];
-                    clearCurrentAndWriteNewBuffer(old, sh.buffer, sh.line_prefix);
+                    clearCurrentAndWriteNewBuffer(old,
+                                                  sh.buffer,
+                                                  sh.line_prefix);
                 }
 
             } else {
@@ -868,8 +1095,11 @@ void autocomplete()
                 if (sh.autocomplete_index - 1 > cmp_entries.size() - 1) {
                     sh.autocomplete_index = 1;
                 }
-                sh.buffer = sh.original_auto_buffer_begin + cmp_entries[sh.autocomplete_index++ - 1];
-                clearCurrentAndWriteNewBuffer(old, sh.buffer, sh.line_prefix);
+                sh.buffer = sh.original_auto_buffer_begin +
+                    cmp_entries[sh.autocomplete_index++ - 1];
+                clearCurrentAndWriteNewBuffer(old,
+                                              sh.buffer,
+                                              sh.line_prefix);
             }
             return;
         }
@@ -916,9 +1146,14 @@ void backsearch()
     if (scrollBack) {
         string_out("\033[F");
     }
-    clearCurrentAndWriteNewBuffer(sh.buffer + sh.backsearch_query, history_item, sh.line_prefix);
+    clearCurrentAndWriteNewBuffer(sh.buffer + sh.backsearch_query,
+                                  history_item,
+                                  sh.line_prefix);
     string_out("\n");
-    clearCurrentAndWriteNewBuffer(sh.backsearch_prefix + sh.backsearch_prefix_fail, sh.buffer, back_prefix);
+    clearCurrentAndWriteNewBuffer(sh.backsearch_prefix +
+                                      sh.backsearch_prefix_fail,
+                                  sh.buffer,
+                                  back_prefix);
 
     sh.backsearch_query = history_item;
 
@@ -948,7 +1183,7 @@ int main(int argc, char *argv[])
     struct termios SavedTermAttributes;
     SetNonCanonicalMode(STDIN_FILENO, &SavedTermAttributes);
 
-    // KShell sh; // now global
+    // KLShell sh; // now global
     signal(SIGINT, sig_handler);
     sh.pid = getpid();
     sh.current_dir = getcwd(NULL, 0);
@@ -966,7 +1201,8 @@ int main(int argc, char *argv[])
         }
         ssize_t bytes_read = read(STDIN_FILENO, &RXChar, 1);
         if (bytes_read != 1) {
-            string error_string = string("Reading input failed with: ") + strerror(errno) + "\n";
+            string error_string = string("Reading input failed with: ") +
+                strerror(errno) + "\n";
             string_out(error_string, STDERR_FILENO);
             return EXIT_FAILURE;
         }
@@ -1035,9 +1271,15 @@ int main(int argc, char *argv[])
             if (sh.backsearch_index != 0) {
                 sh.backsearch_index = 0;
                 string_out("\n");
-                clearCurrentAndWriteNewBuffer(sh.backsearch_prefix + sh.backsearch_prefix_fail + sh.buffer, "", "");
+                clearCurrentAndWriteNewBuffer(sh.backsearch_prefix +
+                                                  sh.backsearch_prefix_fail +
+                                                  sh.buffer,
+                                              "",
+                                              "");
                 string_out("\033[F");
-                clearCurrentAndWriteNewBuffer(sh.buffer, sh.buffer, sh.line_prefix);
+                clearCurrentAndWriteNewBuffer(sh.buffer,
+                                              sh.buffer,
+                                              sh.line_prefix);
                 continue;
             }
             scrollLeftRight();
@@ -1048,9 +1290,15 @@ int main(int argc, char *argv[])
             if (sh.backsearch_index != 0) {
                 sh.backsearch_index = 0;
                 string_out("\n");
-                clearCurrentAndWriteNewBuffer(sh.backsearch_prefix + sh.backsearch_prefix_fail + sh.buffer, "", "");
+                clearCurrentAndWriteNewBuffer(sh.backsearch_prefix +
+                                                  sh.backsearch_prefix_fail +
+                                                  sh.buffer,
+                                              "",
+                                              "");
                 string_out("\033[F");
-                clearCurrentAndWriteNewBuffer(sh.buffer, sh.buffer, sh.line_prefix);
+                clearCurrentAndWriteNewBuffer(sh.buffer,
+                                              sh.buffer,
+                                              sh.line_prefix);
                 continue;
             }
             scrollLeftRight(false);
@@ -1061,9 +1309,15 @@ int main(int argc, char *argv[])
             if (sh.backsearch_index != 0) {
                 sh.backsearch_index = 0;
                 string_out("\n");
-                clearCurrentAndWriteNewBuffer(sh.backsearch_prefix + sh.backsearch_prefix_fail + sh.buffer, "", "");
+                clearCurrentAndWriteNewBuffer(sh.backsearch_prefix +
+                                                  sh.backsearch_prefix_fail +
+                                                  sh.buffer,
+                                              "",
+                                              "");
                 string_out("\033[F");
-                clearCurrentAndWriteNewBuffer(sh.buffer, sh.buffer, sh.line_prefix);
+                clearCurrentAndWriteNewBuffer(sh.buffer,
+                                              sh.buffer,
+                                              sh.line_prefix);
                 continue;
             }
             autocomplete();
@@ -1083,11 +1337,15 @@ int main(int argc, char *argv[])
                     } else {
                         sh.backsearch_index = 0;
                         string_out("\033[F");
-                        clearCurrentAndWriteNewBuffer(sh.buffer, sh.buffer, sh.line_prefix);
+                        clearCurrentAndWriteNewBuffer(sh.buffer,
+                                                      sh.buffer,
+                                                      sh.line_prefix);
                     }
                 }
                 if (sh.buffer_right != "") {
-                    clearCurrentAndWriteNewBuffer(sh.buffer, sh.buffer, sh.line_prefix);
+                    clearCurrentAndWriteNewBuffer(sh.buffer,
+                                                  sh.buffer,
+                                                  sh.line_prefix);
                 }
                 write(STDOUT_FILENO, &RXChar, 1);
                 // delete the empty entry in history if we scrolled to input
@@ -1135,7 +1393,10 @@ int main(int argc, char *argv[])
                     string old = sh.buffer;
                     sh.buffer_left += RXChar;
                     sh.buffer = sh.buffer_left + sh.buffer_right;
-                    clearCurrentAndWriteNewBuffer(old, sh.buffer, sh.line_prefix, sh.buffer_right.size());
+                    clearCurrentAndWriteNewBuffer(old,
+                                                  sh.buffer,
+                                                  sh.line_prefix,
+                                                  sh.buffer_right.size());
                 } else {
                     write(STDOUT_FILENO, &RXChar, 1);
                     sh.buffer += RXChar;

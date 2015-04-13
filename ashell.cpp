@@ -292,7 +292,7 @@ void clearLine(int commandLength) {
 
 }
 
-void execute(string temp) {
+int execute(string temp) {
 	string tmpString(delimitedCommand[0]);
 	if(temp == "exit\n") exitStatus = 0;
 	else if(tmpString == "pwd") pwd();
@@ -309,7 +309,9 @@ void execute(string temp) {
 		// 	write(1, "\n", 1);
 		// }
 		execvp(argArray[0], argArray);
+		return 1;
 	}
+	return 0;
 }
 
 void redirectIn() {
@@ -370,6 +372,9 @@ void redirectOut() {
 void checkCommandType() {
 	string temp(command);
 	vector<int> pids;
+	int pipefd[2];
+	bool piping = false;
+	bool send_piped_content = false;
 	if (!strcmp(argVector[0], "cd") || !strcmp(argVector[0], "exit"))
 	{
 		execute(temp);
@@ -378,15 +383,16 @@ void checkCommandType() {
 		delimitedCommand.clear();
 		for (int i = 0; i < delimtedByPipeCommand.size(); ++i)
 		{
-			write(1, "for\n", 4);
 			string temp2(delimtedByPipeCommand[i]);
 			delimitCommand(delimtedByPipeCommand[i]);
 			makeArgVector();
-			int pipefd[2];
 			if (delimtedByPipeCommand.size() > 1 && i < delimtedByPipeCommand.size() - 1)
 			{
-				write(1, "pipe", 4);
 				pipe(pipefd);
+				piping = true;
+			}
+			else {
+				piping = false;
 			}
 
 			// http://timmurphy.org/2014/04/26/using-fork-in-cc-a-minimum-working-example/
@@ -401,44 +407,36 @@ void checkCommandType() {
 				if(temp2.find(">") != string::npos) {
 					redirectOut();
 				}
-				if (previnpipe)
+				if(piping)
 				{
-					dup2(previnpipe, 0);
-					close(previnpipe);
-				}
-				if (pipefd[1])
-				{
+					close(pipefd[0]);
 					dup2(pipefd[1], 1);
-					close(pipefd[1]);
 				}
-				execute(temp2);
-				// exit 0 from child process
-				exit(0);
+				if(send_piped_content) {
+					send_piped_content = false;
+					dup2(previnpipe, 0);
+				}
+
+				exit(execute(temp2));
 			}
 			// parent process
 			if (pid > 0) {
-				// wait for children to complete then return. if the command contains a "&"
-				// at the end we dont need to wait b/c it's running in bg.
-				// if (strcmp(argVector.back(), "&"))
-				// {
-					// wait(NULL);
-					// return;
-				pids.push_back(pid);
-				// }
+
+				if(piping){
+					close(pipefd[1]);
+				}
+				wait(&pid);
+				if(previnpipe != 0) {
+					close(previnpipe);
+				}
+				if(piping){
+					previnpipe = pipefd[0];
+					send_piped_content = true;
+				}
+				else{
+					close(pipefd[0]);
+				}
 			}
-			if (previnpipe)
-			{
-				close(previnpipe);
-			}
-			if (pipefd[1])
-			{
-				close(pipefd[1]);
-			}
-			previnpipe = pipefd[0];
-		}
-		for (int i = 0; i < pids.size(); ++i)
-		{
-			waitpid(pids[i], NULL, 0);
 		}
 	}
 }
