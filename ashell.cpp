@@ -362,6 +362,7 @@ void checkCommandType() {
     int previnpipe = 0;
     bool piping = false;
     bool send_piped_content = false;
+    if(argVector[0] == NULL) return;
     if (!strcmp(argVector[0], "cd") || !strcmp(argVector[0], "exit"))
     {
         execute(temp);
