@@ -26,6 +26,7 @@ char upArrow  = 0x41;
 char downArrow= 0x42;
 
 bool exitStatus = 1;
+bool isAmpersand = 0;
 int historyLocation = 0;
 int myindex = 0;
 
