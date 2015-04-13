@@ -29,6 +29,7 @@ bool exitStatus = 1;
 bool isAmpersand = 0;
 int historyLocation = 0;
 int myindex = 0;
+int previnpipe = 0;
 
 // command buffer
 char command[BUFFER_SIZE];
@@ -379,25 +380,8 @@ void checkCommandType() {
 		{
 			write(1, "for\n", 4);
 			string temp2(delimtedByPipeCommand[i]);
-			// write(1, temp2.c_str(), temp2.length());
-			// write(1, "\n", 1);
 			delimitCommand(delimtedByPipeCommand[i]);
-			// for (int i = 0; i < delimitedCommand.size(); ++i)
-			// {
-			// 	write(1, delimitedCommand[i], strlen(delimitedCommand[i]));
-			// 	write(1, "\n", 1);
-			// }
 			makeArgVector();
-			// for (int i = 0; i < argVector.size(); ++i)
-			// {
-			// 	write(1, argVector[i], strlen(argVector[i]));
-			// 	write(1, "\n", 1);
-			// }
-
-
-
-			int previnpipe = 0;
-			int outpipe = 0;
 			int pipefd[2];
 			if (delimtedByPipeCommand.size() > 1 && i < delimtedByPipeCommand.size() - 1)
 			{
@@ -420,10 +404,12 @@ void checkCommandType() {
 				if (previnpipe)
 				{
 					dup2(previnpipe, 0);
+					close(previnpipe);
 				}
 				if (pipefd[1])
 				{
 					dup2(pipefd[1], 1);
+					close(pipefd[1]);
 				}
 				execute(temp2);
 				// exit 0 from child process
@@ -435,9 +421,9 @@ void checkCommandType() {
 				// at the end we dont need to wait b/c it's running in bg.
 				// if (strcmp(argVector.back(), "&"))
 				// {
-					wait(NULL);
-					return;
-					// pids.push_back(pid);
+					// wait(NULL);
+					// return;
+				pids.push_back(pid);
 				// }
 			}
 			if (previnpipe)
@@ -450,10 +436,10 @@ void checkCommandType() {
 			}
 			previnpipe = pipefd[0];
 		}
-		// for (int i = 0; i < pids.size(); ++i)
-		// {
-		// 	wait(&pids[i]);
-		// }
+		for (int i = 0; i < pids.size(); ++i)
+		{
+			waitpid(pids[i], NULL, 0);
+		}
 	}
 }
 
